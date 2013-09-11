@@ -1,0 +1,12 @@
+
+Install on local system:
+# make install
+
+Generate a deb package:
+# make deb
+
+Generate API documentation:
+# make doc
+
+Get rid of scratch and byte files:
+# make clean

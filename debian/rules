@@ -1,0 +1,46 @@
+#! /usr/bin/make -f
+
+
+CURDIR=$(shell pwd)
+PROJECT=`basename $(CURDIR)`
+
+# Install egg-info directories
+DEB_PYTHON_INSTALL_ARGS_ALL += --single-version-externally-managed
+
+build:
+	
+clean:
+	dh_testdir
+	dh_testroot
+	dh_clean install-stamp
+
+install: install-stamp
+
+install-stamp:
+	dh_testdir
+	dh_testroot
+	dh_prep
+	dh_installdirs
+	make doc
+	cd src; python setup.py install --install-layout=deb --root=$(CURDIR)/debian/$(PROJECT); cd ..
+	touch $@
+
+binary-arch:
+
+binary-indep: install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs
+	dh_installdocs INSTALL README.md LICENSE debian/README.debian api
+	dh_install
+	dh_python2
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install
+

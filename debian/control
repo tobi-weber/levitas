@@ -1,0 +1,15 @@
+Source: levitas
+Section: utils
+Priority: optional
+Maintainer: Tobias Weber <tobi-weber@gmx.de>
+Build-Depends: debhelper (>= 7), python-epydoc
+X-Python-Version: >= 2.6
+Standards-Version: 3.8.3
+
+Package: levitas
+Architecture: all
+Depends: ${python:Depends}, python-twisted-web
+Suggests:
+Provides:
+Description: Levitas is a small wsgi framework, mainly designed to
+			 write JSON-RPC services for web applications.

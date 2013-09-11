@@ -1,0 +1,122 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# Copyright (C) 2010-2013 Tobias Weber <tobi-weber@gmx.de>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import sys
+import os
+import time
+from lib.options import CMDOptions, CMDOptionError
+
+EXCLUDE_EXT = [".webapp",
+               ".appcache",
+               ".apk"]
+
+
+def writeAppCacheManifest(name, path, uri="/", excludes=[], networks=[]):
+    
+    def readDir(d, p):
+        #sys.stdout.write("Read dir "%s"\n" % d)
+        files = []
+        for f in os.listdir(d):
+            if not os.path.splitext(f)[1] in EXCLUDE_EXT \
+            and not f.startswith("."):
+                rel_path = os.path.join(p, f)
+                abs_path = os.path.join(d, f)
+                if os.path.isdir(abs_path):
+                    files += readDir(abs_path, rel_path)
+                else:
+                    if not f in excludes:
+                        files.append(rel_path)
+                
+        return files
+                        
+    sys.stdout.write('Building appcache manifest from app dir "%s"\n' % path)
+    files = readDir(path, uri)
+            
+    path = os.path.join(path, "%s.appcache" % name)
+    sys.stdout.write("Manifestfile: %s\n" % path)
+    f = open(path, "w")
+    
+    f.write("CACHE MANIFEST\n")
+    f.write("# %s\n" % time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()))
+    #f.write("%s\n" % uri)
+    
+    f.write("CACHE:\n")
+    for n in files:
+        f.write(n + "\n")
+        #f.write(n[1:] + "\n")
+        
+    if networks:
+        f.write("NETWORK:\n")
+        for item in networks:
+            f.write(item + "\n")
+            
+    f.close()
+            
+
+
+cmdoptions = CMDOptions("levitas-manifest", custom_actions=[])
+
+cmdoptions.addOption("-a", "--appname",
+               dest="name",
+               help="name of the app")
+    
+cmdoptions.addOption("-p", "--path",
+               dest="path",
+               help="path to app")
+
+cmdoptions.addOption("-u", "--uri",
+               dest="uri",
+               help="uri of the app")
+
+cmdoptions.addOption("-x", "--excludes",
+               dest="excludes", action="append",
+               help="files to exclude")
+
+cmdoptions.addOption("-n", "--network",
+               dest="networks", action="append",
+               help="online resource. Example: http://other.site.com/image.png")
+
+try:
+    cmdoptions.parse_args()
+except CMDOptionError:
+    sys.exit(1)
+
+if (not cmdoptions.options.name) or \
+   (not cmdoptions.options.path):
+    cmdoptions.print_help()
+    sys.exit(1)
+    
+name = cmdoptions.options.name
+path = cmdoptions.options.path
+uri = cmdoptions.options.uri
+excludes = cmdoptions.options.excludes
+networks = cmdoptions.options.networks
+
+if not os.path.exists(path):
+    sys.stderr.write('Path "%s" not exists.\n' % path)
+    sys.exit(1)
+            
+if uri is None:
+    uri = "/"
+    
+if excludes is None:
+    excludes = []
+    
+if networks is None:
+    networks = []
+
+writeAppCacheManifest(name, path, uri, excludes, networks)
+
+    
