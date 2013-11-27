@@ -18,9 +18,9 @@ import logging
 
 from levitas.lib.settings import Settings
 from levitas.lib import utils
-from factory import MiddlewareFactory
-from middleware.errorMiddleware import ErrorMiddleware
-from signals import (application_instanciated,
+from .factory import MiddlewareFactory
+from .middleware.errorMiddleware import ErrorMiddleware
+from .signals import (application_instanciated,
                      application_called)
 
 

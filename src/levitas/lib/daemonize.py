@@ -22,7 +22,7 @@ from time import sleep
 from multiprocessing import Process
 from optparse import OptionParser
 
-from settings import SettingMissing
+from .SETTINGS import SettingMissing
 
 
 log = logging.getLogger("levitas.lib.daemonize")
@@ -44,7 +44,7 @@ def cli(daemon_class, daemon_args=[], daemon_kwargs={},
     options = CLIOptions(name)
     try:
         options.parse_args()
-    except CLIOptionError, err:
+    except CLIOptionError as err:
         sys.stderr.write(str(err))
         sys.exit(1)
     
@@ -61,13 +61,11 @@ def cli(daemon_class, daemon_args=[], daemon_kwargs={},
         else:
             sys.stdout.write("failed\n")
             return False
-    except SettingMissing, err:
+    except SettingMissing as err:
         sys.stderr.write(err)
 
 
-class AbstractDaemon:
-    __metaclass__ = abc.ABCMeta
-    
+class AbstractDaemon(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def start(self):
         pass
@@ -242,9 +240,9 @@ class CLIOptions(object):
         self.addOption("-v", "--verbose",
                        dest="verbose",
                        action="store_true")
-        self.addOption("-s", "--settings",
+        self.addOption("-s", "--SETTINGS",
                        dest="settings_module",
-                       help="settings module (required)",
+                       help="SETTINGS module (required)",
                        metavar="SETTINGS_MODULE")
         self.addOption("-p", "--pidfile",
                        dest="pidfile",
@@ -283,7 +281,7 @@ class CLIOptions(object):
                 os.environ["LEVITAS_SETTINGS"] = options.settings_module
             else:
                 self.parser.print_help()
-                raise CLIOptionError("option --settings required")
+                raise CLIOptionError("option --SETTINGS required")
         
         if self.action in ["start", "foreground"]:
             self._initLogging(options.verbose, logfile, logfilecount)

@@ -16,8 +16,8 @@
 import os
 import stat
 import mimetypes
-import urllib
-import urlparse
+import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 import posixpath
 import logging
 import time
@@ -25,7 +25,7 @@ import datetime
 
 from levitas.lib import utils
 
-from middleware import Middleware
+from .middleware import Middleware
 
 
 log = logging.getLogger("levitas.middleware.fileMiddleware")
@@ -150,7 +150,7 @@ class FileMiddleware(Middleware):
         try:
             f = open(path, self.mode)
             return f
-        except IOError, e:
+        except IOError as e:
             log.debug(str(e))
             return None
         
@@ -163,7 +163,7 @@ class FileMiddleware(Middleware):
                 try:
                     if_modified_since = self.parse_http_datetime(if_modified_since)
                     if_modified_since = time.mktime(if_modified_since.timetuple())
-                except Exception, err:
+                except Exception as err:
                     log.error(err)
                     return False
                 if int(mtime) > int(if_modified_since):
@@ -178,7 +178,7 @@ class FileMiddleware(Middleware):
         
     def prepareCacheHeaders(self):
         ext = os.path.splitext(self.fpath)[1].lower()
-        if ext in self.CACHE.keys():
+        if ext in list(self.CACHE.keys()):
             self.setCacheHeaders(self.fpath, **self.CACHE[ext])
         else:
             self.setCacheHeaders(self.fpath)
@@ -229,10 +229,10 @@ class FileMiddleware(Middleware):
 
         """
         # abandon query parameters
-        path = urlparse.urlparse(path)[2]
-        path = posixpath.normpath(urllib.unquote(path))
+        path = urllib.parse.urlparse(path)[2]
+        path = posixpath.normpath(urllib.parse.unquote(path))
         words = path.split("/")
-        words = filter(None, words)
+        words = [_f for _f in words if _f]
         path = cwd
         for word in words:
             drive, word = os.path.splitdrive(word)  # @UnusedVariable

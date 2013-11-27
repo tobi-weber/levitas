@@ -18,11 +18,11 @@ import os
 import traceback
 import logging
 
-import utils
-from singleton import Singleton
+from . import utils
+from .singleton import Singleton
 
 
-log = logging.getLogger("levitas.lib.settings")
+log = logging.getLogger("levitas.lib.SETTINGS")
      
      
 class SettingMissing(Exception):
@@ -36,16 +36,16 @@ class Settings(Singleton):
         if "LEVITAS_SETTINGS" in os.environ:
             name = os.environ["LEVITAS_SETTINGS"]
         else:
-            raise ImportError("Could not import settings: "
+            raise ImportError("Could not import SETTINGS: "
                               "os.environ[\"LEVITAS_SETTINGS\"] missing")
             
         try:
             __import__(name)
-            settings = sys.modules[name]
-        except ImportError, e:
+            SETTINGS = sys.modules[name]
+        except ImportError as e:
             t = traceback.format_exc()
             error = """
-            Could not import settings module '%s'
+            Could not import SETTINGS module '%s'
             (Is it on sys.path? Does it have syntax errors?)
             Error message: %s
             
@@ -56,15 +56,15 @@ class Settings(Singleton):
             utils.logTraceback()
             raise
             
-        for setting in dir(settings):
+        for setting in dir(SETTINGS):
             if not (setting.startswith("__") and setting.endswith("__")):
-                setting_value = getattr(settings, setting)
+                setting_value = getattr(SETTINGS, setting)
                 #log.debug("Set setting %s" % setting)
                 setattr(self, setting, setting_value)
 
     def require(self, name, example=""):
         if not hasattr(self, name):
-            msg = "You must define the '%s' in your settings module: %s" \
+            msg = "You must define the '%s' in your SETTINGS module: %s" \
                     % (name, os.environ["LEVITAS_SETTINGS"])
             if example:
                 msg += "\nExample: %s" % example

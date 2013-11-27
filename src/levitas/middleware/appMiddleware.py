@@ -16,7 +16,7 @@
 import os
 import logging
 
-from fileMiddleware import FileMiddleware
+from .fileMiddleware import FileMiddleware
 
 
 log = logging.getLogger("levitas.middleware.appMiddleware")

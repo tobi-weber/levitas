@@ -14,12 +14,12 @@
 # limitations under the License.
 
 import os
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import cgi
 import logging
-from cStringIO import StringIO
+from io import StringIO
 
-from fileMiddleware import FileMiddleware
+from .fileMiddleware import FileMiddleware
 
 
 log = logging.getLogger("levitas.middleware.simpleHTTPMiddleware")
@@ -60,7 +60,7 @@ class SimpleHTTPMiddleware(FileMiddleware):
             return (404, "No permission for directory %s" % path)
         dirs.sort(key=lambda a: a.lower())
         f = StringIO()
-        displaypath = cgi.escape(urllib.unquote(self.path))
+        displaypath = cgi.escape(urllib.parse.unquote(self.path))
         f.write('<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">')
         f.write("<html>\n<title>Directory listing for %s</title>\n" % displaypath)
         f.write("<body>\n<h2>Directory listing for %s</h2>\n" % displaypath)
@@ -77,7 +77,7 @@ class SimpleHTTPMiddleware(FileMiddleware):
                 # Note: a link to a directory displays with @ and links with /
             #linkname = linkname.encode(self._encoding)
             #displayname = displayname.encode(self._encoding)
-            linkname = urllib.quote(linkname)
+            linkname = urllib.parse.quote(linkname)
             displayname = cgi.escape(displayname)
             f.write('<li><a href="%s">%s</a>\n'
                     % (linkname, displayname))

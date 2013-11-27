@@ -14,10 +14,10 @@
 # limitations under the License.
 
 import logging
-from cStringIO import StringIO
-from httplib import HTTPConnection
+from io import StringIO
+from http.client import HTTPConnection
 
-from middleware import Middleware
+from .middleware import Middleware
 
 
 log = logging.getLogger("levitas.middleware.webfontMiddleware")
@@ -49,7 +49,7 @@ class WebfontMiddleware(Middleware):
         Middleware.__init__(self)
         
         self.webfonts = {}
-        for name, webfont_url in webfonts.iteritems():
+        for name, webfont_url in webfonts.items():
             self.webfonts[name] = Webfont(webfont_url)
         
     def get(self):

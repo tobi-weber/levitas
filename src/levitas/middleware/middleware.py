@@ -15,14 +15,21 @@
 
 import os
 import re
-import urlparse
 import cgi
-import urllib
+try:
+    from urllib import unquote  # python 2
+    from urlparse import urljoin  # python 2
+except ImportError:
+    from urllib.parse import unquote  # python 3
+    from urllib.parse import urljoin  # python 3
 import gettext
 import calendar
 import datetime
 import base64
-import Cookie
+try:
+    import Cookie  # python 2
+except ImportError:
+    import http.cookies as Cookie  # python 3
 import time
 import email.utils
 import hashlib
@@ -32,10 +39,10 @@ import logging
 from levitas.lib.settings import Settings
 from levitas.lib import utils
 
-from signals import (middleware_instanciated,
+from .signals import (middleware_instanciated,
                      middleware_request_started,
                      middleware_request_finished)
-from errorMiddleware import ErrorMiddleware
+from .errorMiddleware import ErrorMiddleware
 from levitas import response_codes
 
 
@@ -215,7 +222,7 @@ class Middleware(object):
         # Remove whitespace
         url = url.encode(self._encoding)
         url = re.sub(r"[\x00-\x20]+", "", url)
-        self.addHeader("Location", urlparse.urljoin(self.path,
+        self.addHeader("Location", urljoin(self.path,
                                                     url.decode(self._encoding)))
         self.start_response()
         return []
@@ -268,7 +275,7 @@ class Middleware(object):
         """ Returns the value of a cookie """
         """Gets the value of the cookie with the given name, else default."""
         if name in self.cookies:
-            return self.cookies[name].value.decode("utf-8")
+            return self.cookies[name].value.decode(self._encoding)
         return default
 
     def set_cookie(self, name, value, domain=None, expires=None, path="/",
@@ -298,7 +305,7 @@ class Middleware(object):
                 timestamp, localtime=False, usegmt=True)
         if path:
             new_cookie[name]["path"] = path
-        for k, v in kwargs.iteritems():
+        for k, v in kwargs.items():
             new_cookie[name][k] = v
         
         self._new_cookies.append(new_cookie)
@@ -312,7 +319,7 @@ class Middleware(object):
 
     def clear_all_cookies(self):
         """Deletes all the cookies the user sent with this request."""
-        for name in self.cookies.iterkeys():
+        for name in self.cookies.keys():
             self.clear_cookie(name)
 
     def set_signed_cookie(self, name, value, expires_days=30, **kwargs):
@@ -382,7 +389,7 @@ class Middleware(object):
         return result == 0
             
     def _readEnviron(self, environ):
-        for k, v in environ.iteritems():
+        for k, v in environ.items():
             if "HTTP_" in k or \
                 "CONTENT_" in k:
                 self.request_headers[k] = v
@@ -438,7 +445,7 @@ class Middleware(object):
         if "HTTP_COOKIE" in self.request_headers:
             try:
                 self.cookies.load(self.request_headers["HTTP_COOKIE"])
-            except Exception, err:
+            except Exception as err:
                 log.error("Error loading cookies: %s" % str(err))
         
     def _parseGET(self):
@@ -446,12 +453,12 @@ class Middleware(object):
         try:
             arguments = cgi.parse_qs(self.query_string)
             self.arguments = {}
-            for name, values in arguments.iteritems():
-                values = [v for v in values if v]
+            for name, values in arguments.items():
+                values = [v.decode(self._encoding) for v in values if v]
                 if values:
-                    self.arguments[name] = values
+                    self.arguments[name.decode(self._encoding)] = values
             return True
-        except Exception, err:
+        except Exception as err:
             log.error("Failed to parse the form data: %s" % str(err))
             utils.logTraceback()
             return False
@@ -466,7 +473,8 @@ class Middleware(object):
             if content_type.startswith("text/json") or \
                 content_type.startswith("application/json"):
                     self.arguments = self.input.read(content_length)
-                    self.arguments = urllib.unquote(self.arguments)
+                    self.arguments = self.arguments.decode(self._encoding)
+                    self.arguments = unquote(self.arguments)
                 
             elif content_type.startswith("application/x-www-form-urlencoded"):
                 request_body = self.input.read(content_length)
@@ -485,7 +493,7 @@ class Middleware(object):
                                                   keep_blank_values=True,
                                                   strict_parsing=False)
             return True
-        except Exception, err:
+        except Exception as err:
             log.error("Failed to parse the form data: %s" % str(err))
             utils.logTraceback()
             return False
@@ -519,7 +527,15 @@ class Middleware(object):
             self.prepare()
             
             # call the request-method
-            return getattr(self, self.request_method)()
+            result = getattr(self, self.request_method)()
+            
+            if isinstance(result, str):
+                result = result.encode(self._encoding)
+                
+            if isinstance(result, bytes):
+                return [result]
+            else:
+                return result
         
         except:
             utils.logTraceback()
@@ -546,4 +562,3 @@ class MyFieldStorage(cgi.FieldStorage):
             import tempfile
             log.debug("Create Tempfile")
             return tempfile.TemporaryFile(mode="w+b")
-        

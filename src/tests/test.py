@@ -13,18 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
+import unittest
+import time
 
-from tests import jsonrpc_test
+from tests import server
 
-    
-if __name__ == "__main__":
-    log = logging.getLogger()
-    log.setLevel(logging.DEBUG)
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    handler.setFormatter(formatter)
-    log.addHandler(handler)
-    
-    jsonrpc_test.run()
+
+def run(SETTINGS, module):
+    server.init_settings(SETTINGS)
+    module = module
+    srv = server.WSGIServer()
+    srv.start()
+    time.sleep(0.5)
+    unittest.main(module=module, exit=False)
+    srv.stop()
+
     

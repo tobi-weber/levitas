@@ -14,10 +14,13 @@
 # limitations under the License.
 
 import logging
-import urllib
-from cStringIO import StringIO
-
+try:
+    from urllib import quote  # python 2
+except ImportError:
+    from urllib.parse import quote  # python 3
+from io import BytesIO
 from levitas import response_codes
+from levitas.lib.settings import Settings
 
 
 log = logging.getLogger("levitas.middleware.errorMiddleware")
@@ -46,6 +49,11 @@ class ErrorMiddleware:
     def __init__(self, code, message=None):
         self.code = code
         self.message = message
+        self.settings = Settings()
+        if hasattr(self.settings, "encoding"):
+            self._encoding = self.settings.encoding
+        else:
+            self._encoding = "utf-8"
         
     def response_error(self):
         try:
@@ -58,10 +66,10 @@ class ErrorMiddleware:
         log.error("code %d, message: %s", self.code, self.message)
         content = (self.error_message_format %
                    {"code": self.code,
-                    "message": urllib.quote(self.message),
+                    "message": quote(self.message),
                     "explain": explain})
-        f = StringIO()
-        f.write(content)
+        f = BytesIO()
+        f.write(content.encode(self._encoding))
         size = f.tell()
         f.seek(0)
         headers = [("Content-Type", self.error_content_type)]
@@ -69,17 +77,13 @@ class ErrorMiddleware:
         self.start_response(status, headers)
         method = self.environ["REQUEST_METHOD"].lower()
         if method != "head" and self.code >= 200 and self.code not in (204, 304):
-            headers.append( ("Content-Length", str(size)) )
+            headers.append(("Content-Length", str(size)))
             return f
         else:
-            headers.append( ("Content-Length", "0") )
+            headers.append(("Content-Length", "0"))
             return []
         
     def __call__(self, environ, start_response):
         self.environ = environ
         self.start_response = start_response
         return self.response_error()
-
-
-
-    

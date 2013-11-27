@@ -2,7 +2,7 @@
 
 from levitas.middleware.jsonMiddleware import JSONMiddleware
 
-from myService import MyService
+from .myService import MyService
 
 
 urls = [

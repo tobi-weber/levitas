@@ -15,12 +15,12 @@
 
 import logging
 from json import JSONDecoder, JSONEncoder
-from cStringIO import StringIO
+from io import BytesIO
 
 from levitas.lib import utils
 
-from middleware import Middleware
-from service import Service
+from .middleware import Middleware
+from .service import Service
 
 
 log = logging.getLogger("levitas.middleware.jsonMiddleware")
@@ -76,13 +76,13 @@ service class %s must be subclass of levitas.middleware.service.Service
             service = self.service_class(self, **self.service_attributes)
             result = ServiceHandler(service).handleData(self.arguments)
             return self.response_result(result)
-        except Exception, e:
+        except Exception as e:
             utils.logTraceback()
             return self.response_error(500, str(e))
         
     def response_result(self, result):
-        f = StringIO()
-        f.write(result)
+        f = BytesIO()
+        f.write(result.encode(self._encoding))
         self.response_code = 200
         size = f.tell()
         f.seek(0)
@@ -95,8 +95,8 @@ service class %s must be subclass of levitas.middleware.service.Service
     
 class ServiceHandler:
     def __init__(self, service):
-        self.decoder = JSONDecoder(encoding="utf-8", strict=False)
-        self.encoder = JSONEncoder(encoding="utf-8", ensure_ascii=True, sort_keys=False)
+        self.decoder = JSONDecoder(strict=False)
+        self.encoder = JSONEncoder(ensure_ascii=True, sort_keys=False)
         self.service = service
         self.retry = False
         
@@ -105,7 +105,7 @@ class ServiceHandler:
             obj = self.decoder.decode(data)
             result = self.handleRequest(obj)
             return result
-        except Exception, err:
+        except Exception as err:
             log.error("Internal error: %s" % str(err))
             log.error(data)
             utils.logTraceback()
@@ -165,15 +165,15 @@ class ServiceHandler:
                 complete()
                 
             return data
-        except TypeError, err:
+        except TypeError as err:
             log.error("Invalid params: %s" % str(err))
             utils.logTraceback()
             return self.__getError(idnr, -32602, err)
-        except AttributeError, err:
+        except AttributeError as err:
             log.error("Parse error: %s" % str(err))
             utils.logTraceback()
             return self.__getError(idnr, -32700, err)
-        except ValueError, err:
+        except ValueError as err:
             log.error("Parse error: %s" % str(err))
             utils.logTraceback()
             return self.__getError(idnr, -32700, err)
@@ -183,7 +183,7 @@ class ServiceHandler:
         obj["result"] = result
         try:
             return self.encoder.encode(obj)
-        except Exception, err:
+        except Exception as err:
             log.error("JSON failed to encode: %s" % str(err))
             utils.logTraceback()
             return self.__getError(idnr, -32603, err)
@@ -193,7 +193,7 @@ class ServiceHandler:
         error = {"code": code,
                  "message": str(execption),
                  }
-        if not isinstance(execption, (str, unicode)):
+        if not isinstance(execption, str):
             error["data"] = {"exception": execption.__class__.__name__,
                              "traceback": utils.getTraceback()}
         else:
@@ -202,9 +202,7 @@ class ServiceHandler:
         obj["error"] = error
         try:
             return self.encoder.encode(obj)
-        except Exception, err:
+        except Exception as err:
             return self.response_error(500, str(err))
         
         return obj
-        
-        

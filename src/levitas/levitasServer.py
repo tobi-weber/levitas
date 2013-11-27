@@ -19,7 +19,7 @@ import logging
 from levitas.lib.settings import Settings
 from levitas.lib import utils
 from levitas.lib.daemonize import AbstractDaemon
-from handler import WSGIHandler
+from .handler import WSGIHandler
 
 
 log = logging.getLogger("levitas.httpd")
@@ -29,7 +29,7 @@ class LevitasServer(AbstractDaemon):
     """
     WSGI Server.
     
-    Example settings entry
+    Example SETTINGS entry
     ======================
         # Server address
         httpserver_address = ("127.0.0.1", 8080)
@@ -37,22 +37,22 @@ class LevitasServer(AbstractDaemon):
     backlog = 128
     
     def __init__(self):
-        settings = Settings()
+        SETTINGS = Settings()
         
-        settings.require("httpserver_address",
+        SETTINGS.require("httpserver_address",
                          'httpserver_address = ("127.0.0.1", 8080)')
-        self.server_address = settings.httpserver_address
+        self.server_address = SETTINGS.httpserver_address
         
         self.ssl = False
-        if hasattr(settings, "httpserver_ssl"):
-            self.ssl = settings.httpserver_ssl
-            if settings.httpserver_ssl:
-                settings.require("httpserver_certfile",
+        if hasattr(SETTINGS, "httpserver_ssl"):
+            self.ssl = SETTINGS.httpserver_ssl
+            if SETTINGS.httpserver_ssl:
+                SETTINGS.require("httpserver_certfile",
                                  'httpserver_certfile = "/path/to/certfile"')
-                settings.require("httpserver_keyfile",
+                SETTINGS.require("httpserver_keyfile",
                                  'httpserver_keyfile = "/path/to/keyfile"')
-                self.certfile = settings.httpserver_certfile
-                self.keyfile = settings.httpserver_keyfile
+                self.certfile = SETTINGS.httpserver_certfile
+                self.keyfile = SETTINGS.httpserver_keyfile
                 
         self.instances = []
             

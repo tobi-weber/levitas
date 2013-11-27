@@ -30,7 +30,7 @@ def cli(cls, name, displayname=None, stay_alive=True):
     except CLIOptionError:
         sys.exit(1)
     
-    print "%s %s " % (options.action or "start", name)
+    print("%s %s " % (options.action or "start", name))
 
     cls._svc_name_ = options.name
     cls._svc_display_name_ = options.displayname or options.name
@@ -56,61 +56,61 @@ def cli(cls, name, displayname=None, stay_alive=True):
             )
             
             # Set options to registry
-            print "Add settings_module to registry: %s" % options.settings_module
+            print("Add settings_module to registry: %s" % options.settings_module)
             win32serviceutil.SetServiceCustomOption(cls._svc_name_,
                                                     "settings_module",
                                                     options.settings_module)
-            print "Add logfile to registry: %s" % str(options.logfile)
+            print("Add logfile to registry: %s" % str(options.logfile))
             win32serviceutil.SetServiceCustomOption(cls._svc_name_,
                                                     "logfile",
                                                     str(options.logfile))
-            print "Add logfilecount to registry: %s" % str(options.logfilecount)
+            print("Add logfilecount to registry: %s" % str(options.logfilecount))
             win32serviceutil.SetServiceCustomOption(cls._svc_name_,
                                                     "logfilecount",
                                                     str(options.logfilecount))
-            print "Add verbose to registry: %s" % str(options.verbose)
+            print("Add verbose to registry: %s" % str(options.verbose))
             win32serviceutil.SetServiceCustomOption(cls._svc_name_,
                                                     "verbose",
                                                     str(options.verbose))
-            print 'Install ok'
-        except Exception, x:
-            print str(x)
+            print('Install ok')
+        except Exception as x:
+            print(str(x))
             
     elif options.action == "start":
         try:
             win32serviceutil.StartService(
                 cls._svc_name_
             )
-            print 'Start ok'
-        except Exception, x:
-            print str(x)
+            print('Start ok')
+        except Exception as x:
+            print(str(x))
             
     elif options.action == "stop":
         try:
             win32serviceutil.StopService(
                 cls._svc_name_
             )
-            print 'Stop ok'
-        except Exception, x:
-            print str(x)
+            print('Stop ok')
+        except Exception as x:
+            print(str(x))
             
     elif options.action == "restart":
         try:
             win32serviceutil.RestartService(
                 cls._svc_name_
             )
-            print 'Restart ok'
-        except Exception, x:
-            print str(x)
+            print('Restart ok')
+        except Exception as x:
+            print(str(x))
             
     elif options.action == "remove":
         try:
             win32serviceutil.RemoveService(
                 cls._svc_name_
             )
-            print 'Remove ok'
-        except Exception, x:
-            print str(x)
+            print('Remove ok')
+        except Exception as x:
+            print(str(x))
 
 
 class WinService(win32serviceutil.ServiceFramework):

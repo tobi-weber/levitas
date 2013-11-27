@@ -32,7 +32,7 @@ class Service(object):
         
         May be overridden.
         """
-        for k, v in kwargs.items():
+        for k, v in list(kwargs.items()):
             setattr(self, k, v)
         
     def _prepare(self):
