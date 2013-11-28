@@ -25,56 +25,75 @@ from json import loads
 from threading import Thread
 
 from levitas.handler import WSGIHandler
+from levitas.middleware.service import Service
+
+    
+class TestService(Service):
+    
+    def getArg(self):
+        return "OK"
+
+    def setArgs(self, arg1, arg2, arg3):
+        return "Args: %s, %s, %s" % (arg1, arg2, arg3)
+    
+    def setNamedArgs(self, arg1="arg1", arg2="arg2", arg3="arg3"):
+        return "Args: %s, %s, %s" % (arg1, arg2, arg3)
 
 
-class LevitasTest(unittest.TestCase):
-        
-    from levitas.middleware.service import Service
+class WSGIServer(Thread):
     
-    class TestService(Service):
-        
-        def getArg(self):
-            return "OK"
-    
-        def setArgs(self, arg1, arg2, arg3):
-            return "Args: %s, %s, %s" % (arg1, arg2, arg3)
-        
-        def setNamedArgs(self, arg1="arg1", arg2="arg2", arg3="arg3"):
-            return "Args: %s, %s, %s" % (arg1, arg2, arg3)
-            
     settings = \
 """
 from levitas.middleware.jsonMiddleware import JSONMiddleware
-from test import LevitasTest
+from test import TestService
 urls = [
-(r"^/json/test", JSONMiddleware, {"service_class": LevitasTest.TestService})
+(r"^/json/test", JSONMiddleware, {"service_class": TestService})
 ]
 """
-        
-    def setUp(self):
-        def runserver():
-            httpd = make_server("localhost", 8987, WSGIHandler())
-            httpd.handle_request()
+    
+    def __init__(self):
+        Thread.__init__(self)
         module = imp.new_module("settings")
-        exec self.settings in module.__dict__
+        #exec self.settings in module.__dict__
+        exec(self.settings, module.__dict__)
         sys.modules["settings"] = module
         os.environ["LEVITAS_SETTINGS"] = "settings"
-        Thread(target=runserver).start()
-        time.sleep(1)
+        self._running = True
+        
+    def run(self):
+        httpd = make_server("localhost", 8987, WSGIHandler())
+        while self._running:
+            httpd.handle_request()
+        
+    def stop(self):
+        self._running = False
+        opener = urllib2.build_opener()
+        url = "http://localhost:8987/"
+        try:
+            request = urllib2.Request(url)
+            opener.open(request)
+        except:
+            pass
+
+
+class JSONRPCTest(unittest.TestCase):
+        
+    def setUp(self):
         self.headers = {"Content-type": "application/json-rpc"}
         self.opener = urllib2.build_opener()
         self.url = "http://localhost:8987/json/test"
         
     def _request(self, data):
-        print data
         try:
-            request = urllib2.Request(self.url, data=data, headers=self.headers)
+            request = urllib2.Request(self.url,
+                                      data=data.encode("utf-8"),
+                                      headers=self.headers)
             response = self.opener.open(request)
         except Exception, err:
             return err
         
         try:
-            return loads(response.read())
+            return loads(response.read().decode("utf-8"))
         except:
             raise
     
@@ -146,6 +165,10 @@ if __name__ == "__main__":
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     handler.setFormatter(formatter)
     log.addHandler(handler)
-    unittest.main()
+    server = WSGIServer()
+    server.start()
+    time.sleep(0.5)
+    unittest.main(exit=False)
+    server.stop()
     
     
