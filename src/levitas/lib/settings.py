@@ -33,6 +33,9 @@ class Settings(Singleton):
     
     def __init__(self):
         log.info("Settings initialized")
+        self.import_module()
+                
+    def import_module(self):
         if "LEVITAS_SETTINGS" in os.environ:
             name = os.environ["LEVITAS_SETTINGS"]
         else:
@@ -61,6 +64,7 @@ class Settings(Singleton):
                 setting_value = getattr(SETTINGS, setting)
                 #log.debug("Set setting %s" % setting)
                 setattr(self, setting, setting_value)
+        
 
     def require(self, name, example=""):
         if not hasattr(self, name):

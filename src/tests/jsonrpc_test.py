@@ -57,11 +57,11 @@ class JSONRPCTest(unittest.TestCase):
         self.url = "http://localhost:8987/json/runtest"
         
     def _request(self, data):
-        print(data)
+        #print(data)
         try:
             req = request.Request(self.url,
-                                             data=data.encode("utf-8"),
-                                             headers=self.headers)
+                                  data=data.encode("utf-8"),
+                                  headers=self.headers)
             response = self.opener.open(req)
         except Exception as err:
             return err
@@ -74,77 +74,77 @@ class JSONRPCTest(unittest.TestCase):
     def test_missing_params(self):
         data = '{"jsonrpc":"2.0","id":"ID01","method":"getArg"}'
         obj = self._request(data)
-        print(obj)
+        #print(obj)
         self.assertTrue("result" in obj, str(obj))
         self.assertEqual(obj["result"], "OK")
     
     def test_missing_id(self):
         data = '{"jsonrpc":"2.0", "method":"get"}'
         obj = self._request(data)
-        print(obj)
+        #print(obj)
         self.assertTrue("error" in obj, str(obj))
         self.assertEqual(obj["error"]["code"], -32600)
         
     def test_unknown_method(self):
         data = '{"jsonrpc":"2.0","id":"ID01", "method":"get_unknown_method"}'
         obj = self._request(data)
-        print(obj)
+        #print(obj)
         self.assertTrue("error" in obj, str(obj))
         self.assertEqual(obj["error"]["code"], -32601)
         
     def test_missing_protocol(self):
         data = '{"id":"ID01", "method":"get"}'
         obj = self._request(data)
-        print(obj)
+        #print(obj)
         self.assertTrue("error" in obj, str(obj))
         self.assertEqual(obj["error"]["code"], -32600)
         
     def test_wrong_protocol(self):
         data = '{"jsonrpc":"1.0", "id":"ID01", "method":"get"}'
         obj = self._request(data)
-        print(obj)
+        #print(obj)
         self.assertTrue("error" in obj, str(obj))
         self.assertEqual(obj["error"]["code"], -32600)
         
     def test_parse_error(self):
         data = '{jsonrpc":"2.0","id":"ID01","method":"get"}'
         obj = self._request(data)
-        print(obj)
+        #print(obj)
         self.assertTrue("error" in obj, str(obj))
         self.assertEqual(obj["error"]["code"], -32603)
         
     def test_set_args(self):
         data = '{"jsonrpc":"2.0","id":"ID01","method":"setArgs","params":["arg1","arg2","arg3"]}' # @IgnorePep8
         obj = self._request(data)
-        print(obj)
+        #print(obj)
         self.assertTrue("result" in obj, str(obj))
         self.assertEqual(obj["result"], "Args: arg1, arg2, arg3")
         
     def test_invalid_args(self):
         data = '{"jsonrpc":"2.0","id":"ID01","method":"setArgs","params":["arg1","arg2"]}' # @IgnorePep8
         obj = self._request(data)
-        print(obj)
+        #print(obj)
         self.assertTrue("error" in obj, str(obj))
         self.assertEqual(obj["error"]["code"], -32602, str(obj))
         
     def test_set_named_args(self):
         data = '{"jsonrpc":"2.0","id":"ID01","method":"setArgs","params":{"arg1":"1","arg2":"2","arg3":"3"}}' # @IgnorePep8
         obj = self._request(data)
-        print(obj)
+        #print(obj)
         self.assertTrue("result" in obj, str(obj))
         self.assertEqual(obj["result"], "Args: 1, 2, 3", str(obj))
         
     def test_invalid_named_args(self):
         data = '{"jsonrpc":"2.0","id":"ID01","method":"setArgs","params":{"arg1":"arg1","arg2":"arg2","arg4":"arg3"}}' # @IgnorePep8
         obj = self._request(data)
-        print(obj)
+        #print(obj)
         self.assertTrue("error" in obj, str(obj))
         self.assertEqual(obj["error"]["code"], -32602, str(obj))
         
     def test_umlaute(self):
         data = u'{"jsonrpc":"2.0","id":"ID01","method":"umlaute","params":["äöüß"]}'
         obj = self._request(data)
-        print(obj)
+        #print(obj)
         self.assertTrue("result" in obj, str(obj))
         self.assertTrue(obj["result"], u"aöüß")
         

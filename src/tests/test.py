@@ -22,7 +22,7 @@ from tests import server
 def run(SETTINGS, module):
     server.init_settings(SETTINGS)
     module = module
-    srv = server.WSGIServer()
+    srv = server.WSGIServerThread()
     srv.start()
     time.sleep(0.5)
     unittest.main(module=module, exit=False)

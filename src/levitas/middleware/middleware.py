@@ -160,9 +160,9 @@ class Middleware(object):
     def getPath(self):
         return self.path
     
-    def addHeader(self, *args):
+    def addHeader(self, name, value):
         """ Add a header to the response """
-        self.response_headers.append(args)
+        self.response_headers.append((name, value))
         
     def getHeader(self, name):
         name = name.upper()
@@ -223,7 +223,7 @@ class Middleware(object):
         url = url.encode(self._encoding)
         url = re.sub(r"[\x00-\x20]+", "", url)
         self.addHeader("Location", urljoin(self.path,
-                                                    url.decode(self._encoding)))
+                                           url.decode(self._encoding)))
         self.start_response()
         return []
     
@@ -468,7 +468,7 @@ class Middleware(object):
         content_length = self.request_headers["CONTENT_LENGTH"]
         content_length = int(content_length)
         content_type = self.request_headers["CONTENT_TYPE"]
-        log.debug("POST: %s" % content_type)
+        log.debug("POST: %s, Content-Length: %d" % (content_type, content_length))
         try:
             if content_type.startswith("text/json") or \
                 content_type.startswith("application/json"):
@@ -482,13 +482,12 @@ class Middleware(object):
                 
             elif content_type.startswith("multipart/form-data"):
                 log.debug("Multipart/form-data request")
-                log.debug("Content-Length: %d" % content_length)
                 if not content_length:
                     return False
                 if hasattr(self.settings, "upload_path"):
                     log.debug("Upload-Path: %s" % self.settings.upload_path)
-                    MyFieldStorage.temppath = self.settings.upload_path
-                self.arguments = MyFieldStorage(fp=self.input,
+                    LevitasFieldStorage.temppath = self.settings.upload_path
+                self.arguments = LevitasFieldStorage(fp=self.input,
                                                   environ=self._environ,
                                                   keep_blank_values=True,
                                                   strict_parsing=False)
@@ -529,9 +528,36 @@ class Middleware(object):
             # call the request-method
             result = getattr(self, self.request_method)()
             
+            # Do not return empty/invalid results
+            if isinstance(result, list):
+                if not len(result):
+                    return self.response_error(500,
+                                               "%s: Method %s returns empty list"
+                                               % (self.__class__.__name__,
+                                                  self.request_method))
+            elif result is None:
+                return self.response_error(500,
+                                           "%s: Method %s returns None"
+                                           % (self.__class__.__name__,
+                                              self.request_method))
+            elif not hasattr(result, "__iter__"):
+                return self.response_error(500,
+                                           "%s: Method %s returns not iterable object %s"
+                                           % (self.__class__.__name__,
+                                              self.request_method,
+                                              type(result)))
+            elif not result:
+                return self.response_error(500,
+                                           "%s: Method %s returns empty result %s"
+                                           % (self.__class__.__name__,
+                                              self.request_method,
+                                              str(result)))
+                
+            # Encode str type to bytes type
             if isinstance(result, str):
                 result = result.encode(self._encoding)
-                
+            
+            # Return the result
             if isinstance(result, bytes):
                 return [result]
             else:
@@ -542,7 +568,7 @@ class Middleware(object):
             return self.response_error(500)
         
 
-class MyFieldStorage(cgi.FieldStorage):
+class LevitasFieldStorage(cgi.FieldStorage):
     
     temppath = None
      

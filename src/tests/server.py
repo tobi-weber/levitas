@@ -16,14 +16,16 @@
 import sys
 import os
 import imp
+import time
 from threading import Thread
-from wsgiref.simple_server import make_server
+from wsgiref.simple_server import make_server, WSGIServer, WSGIRequestHandler
 try:
     from urllib import request  # python 3
 except ImportError:
     import urllib2 as request  # python 2
 
 from levitas.handler import WSGIHandler
+from levitas.lib.settings import Settings
 
 
 def init_settings(SETTINGS):
@@ -31,25 +33,48 @@ def init_settings(SETTINGS):
     exec(SETTINGS, module.__dict__)
     sys.modules["SETTINGS"] = module
     os.environ["LEVITAS_SETTINGS"] = "SETTINGS"
+    Settings().import_module()
     
 
-class WSGIServer(Thread):
+class TestWSGIServer(WSGIServer):
+    
+    def handle_error(self, request, client_address):
+        pass
+    
+    
+class TestWSGIRequestHandler(WSGIRequestHandler):
+    
+    def log_message(self, format, *args):  # @ReservedAssignment
+        pass
+
+    def get_stderr(self):
+        return os.devnull
+    
+
+class WSGIServerThread(Thread):
     
     def __init__(self):
         Thread.__init__(self)
         self._running = True
         
     def run(self):
-        httpd = make_server("localhost", 8987, WSGIHandler())
+        httpd = make_server("localhost", 8987, WSGIHandler(),
+                            server_class=TestWSGIServer,
+                            handler_class=TestWSGIRequestHandler)
+        httpd.socket.settimeout(0)
         while self._running:
             httpd.handle_request()
         
     def stop(self):
-        self._running = False
         opener = request.build_opener()
         url = "http://localhost:8987/"
         try:
+            self._running = False
             req = request.Request(url)
             opener.open(req)
-        except:
+        except Exception as err:
             pass
+        
+        
+        
+        
