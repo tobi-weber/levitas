@@ -126,7 +126,7 @@ class WSGIHandler(object):
     def _error(self, environ, start_response, code):
         middleware = Middleware()
         middleware.initEnviron(environ, start_response)
-        return middleware.response_error()
+        return middleware.response_error(code)
         
     def _initLogging(self, logfile=None, logfilecount=0, verbose=False):
         if logfile is None:

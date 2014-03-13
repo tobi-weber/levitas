@@ -139,6 +139,8 @@ class Middleware(object):
         self._new_cookies = []
         """ New cookies for the response """
         
+        self.__responseStarted = False
+        
         if hasattr(self.settings, "encoding"):
             self._encoding = self.settings.encoding
         else:
@@ -149,6 +151,7 @@ class Middleware(object):
                                      middleware=self)
         
     def initEnviron(self, environ, start_response):
+        """ Initialize the wsgi environment """
         self._start_response = start_response
         self._environ = environ
         self._readEnviron(environ)
@@ -228,6 +231,9 @@ class Middleware(object):
         
     def start_response(self, cookies=True):
         """ Start the response """
+        if self.__responseStarted:
+            log.debug("Response already started")
+            return
         s, l = response_codes[self.response_code]  # @UnusedVariable
         status = "%s %s" % (str(self.response_code), s)
         
@@ -572,27 +578,16 @@ class Middleware(object):
             # Do not return empty/invalid results
             if isinstance(result, list):
                 if not len(result):
-                    return self.response_error(500,
-                                               "%s: Method %s returns empty list"
-                                               % (self.__class__.__name__,
-                                                  self.request_method))
+                    result = ""
             elif result is None:
-                return self.response_error(500,
-                                           "%s: Method %s returns None"
-                                           % (self.__class__.__name__,
-                                              self.request_method))
-            elif not hasattr(result, "__iter__"):
+                result = ""
+            elif not hasattr(result, "__iter__") and \
+                not isinstance(result, (str, bytes)):
                 return self.response_error(500,
                                            "%s: Method %s returns not iterable object %s"
                                            % (self.__class__.__name__,
                                               self.request_method,
                                               type(result)))
-            elif not result:
-                return self.response_error(500,
-                                           "%s: Method %s returns empty result %s"
-                                           % (self.__class__.__name__,
-                                              self.request_method,
-                                              str(result)))
                 
             # Encode str type to bytes type
             if isinstance(result, str):
@@ -600,9 +595,10 @@ class Middleware(object):
             
             # Return the result
             if isinstance(result, bytes):
-                return [result]
-            else:
-                return result
+                result = [result]
+            if not self.__responseStarted:
+                self.start_response()
+            return result
         
         except:
             utils.logTraceback()

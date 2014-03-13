@@ -14,19 +14,18 @@
 # limitations under the License.
 
 import logging
-import time
 
 from tests import (jsonrpc_test,
                    middleware_test)
 
     
 if __name__ == "__main__":
-    #log = logging.getLogger()
-    #log.setLevel(logging.DEBUG)
-    #handler = logging.StreamHandler()
-    #formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    #handler.setFormatter(formatter)
-    #log.addHandler(handler)
+    log = logging.getLogger()
+    log.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
+    handler.setFormatter(formatter)
+    log.addHandler(handler)
     jsonrpc_test.run()
     middleware_test.run()
     

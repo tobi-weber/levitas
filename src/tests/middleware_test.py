@@ -15,7 +15,6 @@
 
 import os
 import unittest
-import time
 try:
     from urllib import request  # python 3
     from urllib.error import HTTPError
@@ -105,6 +104,7 @@ class Test_addHeader(Middleware):
     
     def get(self):
         self.addHeader("Test-Header", "Test-Value")
+        return [""]
     
     
 class Test_response_error(Middleware):
@@ -234,6 +234,11 @@ class MiddlewareTest(unittest.TestCase):
         
         return response
     
+    def test_handler_404(self):
+        obj = self._request("some_path")
+        self.assertTrue(isinstance(obj, HTTPError) and \
+                        obj.code == 404, str(obj))
+    
     def test_none_result(self):
         obj = self._request("none_result")
         self.assertTrue(isinstance(obj, HTTPError) and \
@@ -241,6 +246,7 @@ class MiddlewareTest(unittest.TestCase):
     
     def test_empty_result(self):
         obj = self._request("empty_result")
+        print(type(obj.read()))
         self.assertTrue(isinstance(obj, HTTPError) and \
                         obj.code == 500, str(obj))
     
@@ -256,7 +262,10 @@ class MiddlewareTest(unittest.TestCase):
     
     def test_addHeader(self):
         obj = self._request("addHeader")
-        #print(obj)
+        print("##########################")
+        print(type(obj))
+        print(dict(obj))
+        print("##########################")
     
     """
         
