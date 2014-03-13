@@ -17,12 +17,11 @@ import os
 import re
 import cgi
 try:
-    from urllib import unquote  # python 2
+    from urllib import quote, unquote  # python 2
     from urlparse import urljoin  # python 2
 except ImportError:
-    from urllib.parse import unquote  # python 3
+    from urllib.parse import quote, unquote  # python 3
     from urllib.parse import urljoin  # python 3
-import gettext
 import calendar
 import datetime
 import base64
@@ -35,6 +34,7 @@ import email.utils
 import hashlib
 import hmac
 import logging
+from io import BytesIO
 
 from levitas.lib.settings import Settings
 from levitas.lib import utils
@@ -42,11 +42,25 @@ from levitas.lib import utils
 from .signals import (middleware_instanciated,
                      middleware_request_started,
                      middleware_request_finished)
-from .errorMiddleware import ErrorMiddleware
 from levitas import response_codes
 
 
 log = logging.getLogger("levitas.middleware.middleware")
+
+
+DEFAULT_ERROR_MESSAGE = """\
+<head>
+<title>Error response</title>
+</head>
+<body>
+<h1>Error response</h1>
+<p>Error code %(code)d.
+<p>Message: %(message)s.
+<p>Error code explanation: %(code)s = %(explain)s.
+</body>
+"""
+
+DEFAULT_ERROR_CONTENT_TYPE = "text/html"
 
 
 class Middleware(object):
@@ -72,10 +86,16 @@ class Middleware(object):
     LOG = True
     """ If the request should be logged """
     
+    ERROR_MESSAGE_FORMAT = DEFAULT_ERROR_MESSAGE
+    ERROR_CONTENT_TYPE = DEFAULT_ERROR_CONTENT_TYPE
+    
     def __init__(self, *args, **kwargs):
         
         self.settings = Settings()
         """ Settings-Object """
+        
+        self.request_method = None
+        """ HTTP-Request method """
         
         self.request_headers = {}
         """Headers from the request """
@@ -101,6 +121,18 @@ class Middleware(object):
         self.user_agent = None
         """ User agent of the request """
         
+        self.url_scheme = None
+        """ Url scheme (http or https) """
+        
+        self.server_name = None
+        """ Server name """
+        
+        self.server_port = None
+        """ Server port """
+        
+        self.query_string = None
+        """ Query string """
+        
         self.cookies = Cookie.BaseCookie()
         """ Cookies for the request """
         
@@ -115,6 +147,11 @@ class Middleware(object):
         # Send instanciated signal
         middleware_instanciated.send(self.__class__,
                                      middleware=self)
+        
+    def initEnviron(self, environ, start_response):
+        self._start_response = start_response
+        self._environ = environ
+        self._readEnviron(environ)
         
     def log_request(self, code="-", size="-"):
         if self.LOG:
@@ -210,9 +247,32 @@ class Middleware(object):
                                          middleware=self)
         
     def response_error(self, code, message=None):
-        """ Create an error response """
-        error = ErrorMiddleware(code, message)
-        return error(self._environ, self._start_response)
+        try:
+            short, l = response_codes[code]
+        except KeyError:
+            short, l = "???", "???"
+        if message is None:
+            message = short
+        explain = l
+        log.error("code %d, message: %s", code, message)
+        content = (Middleware.ERROR_MESSAGE_FORMAT %
+                   {"code": code,
+                    "message": quote(message),
+                    "explain": explain})
+        f = BytesIO()
+        f.write(content.encode(self._encoding))
+        size = f.tell()
+        f.seek(0)
+        headers = [("Content-Type", Middleware.ERROR_CONTENT_TYPE)]
+        status = "%s %s" % (str(code), short)
+        if self.request_method != "head" and code >= 200 and code not in (204, 304):
+            headers.append(("Content-Length", str(size)))
+            self._start_response(status, headers)
+            return f
+        else:
+            headers.append(("Content-Length", "0"))
+            self._start_response(status, headers)
+            return []
     
     def response_redirect(self, url, permanent=False):
         """ Redirect to an url """
@@ -253,23 +313,6 @@ class Middleware(object):
                     score = 1.0
                 locales.append((parts[0], score))
         return locales
-    
-    def loadLanguage(self, domain, localedir="/usr/share/locale", default_lang="en"):
-        """ Loads a gettext-locale-dir """
-        locales = self.get_browser_locale()
-        language = default_lang
-        for lang, i in locales:  # @UnusedVariable
-            if "-" in lang:
-                lang = lang.split("-")[0]
-            if gettext.find(domain, localedir=localedir, languages=[lang]):
-                language = lang
-                break
-        try:
-            language = gettext.translation(domain, localedir=localedir,
-                                           languages=[language], fallback=True)
-            language.install()
-        except:
-            pass
         
     def get_cookie(self, name, default=None):
         """ Returns the value of a cookie """
@@ -498,9 +541,7 @@ class Middleware(object):
             return False
     
     def __call__(self, environ, start_response):
-        self._start_response = start_response
-        self._environ = environ
-        self._readEnviron(environ)
+        self.initEnviron(environ, start_response)
         
         if self.request_method not in self.SUPPORTED_METHODS:
             log.error("Unknown method %s" % self.request_method)

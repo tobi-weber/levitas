@@ -19,7 +19,7 @@ import logging
 from levitas.lib.settings import Settings
 from levitas.lib import utils
 from .factory import MiddlewareFactory
-from .middleware.errorMiddleware import ErrorMiddleware
+from .middleware.middleware import Middleware
 from .signals import (application_instanciated,
                      application_called)
 
@@ -124,8 +124,9 @@ class WSGIHandler(object):
         self.factories.append(factory)
         
     def _error(self, environ, start_response, code):
-        error_handler = ErrorMiddleware(code)
-        return error_handler(environ, start_response)
+        middleware = Middleware()
+        middleware.initEnviron(environ, start_response)
+        return middleware.response_error()
         
     def _initLogging(self, logfile=None, logfilecount=0, verbose=False):
         if logfile is None:
