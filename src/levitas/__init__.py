@@ -14,9 +14,26 @@
 # limitations under the License.
 
 
+DEFAULT_ERROR_MESSAGE_FORMAT = """\
+<head>
+<title>Error response</title>
+</head>
+<body>
+<h1>Error response</h1>
+<p>Error code %(code)d.
+<p>Message: %(message)s.
+<p>Error code explanation: %(code)d = %(explain)s.
+</body>
+"""
+
+
+DEFAULT_ERROR_CONTENT_TYPE = "text/html"
+
+
 # Table mapping response codes to messages; entries have the
 # form {code: (shortmessage, longmessage)}.
 # See RFC 2616.
+
 response_codes = {
     100: ('Continue', 'Request received, please continue'),
     101: ('Switching Protocols',

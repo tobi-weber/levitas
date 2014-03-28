@@ -16,8 +16,10 @@
 import os
 import stat
 import mimetypes
-import urllib.request, urllib.parse, urllib.error
-import urllib.parse
+try:
+    from urllib import unquote  # python 2
+except ImportError:
+    from urllib.parse import unquote  # python 3
 import posixpath
 import logging
 import time
@@ -229,8 +231,11 @@ class FileMiddleware(Middleware):
 
         """
         # abandon query parameters
-        path = urllib.parse.urlparse(path)[2]
-        path = posixpath.normpath(urllib.parse.unquote(path))
+        path = path.split('?', 1)[0]
+        path = path.split('#', 1)[0]
+        # Don't forget explicit trailing slash when normalizing. Issue17324
+        trailing_slash = path.rstrip().endswith('/')
+        path = posixpath.normpath(unquote(path))
         words = path.split("/")
         words = [_f for _f in words if _f]
         path = cwd
@@ -240,6 +245,9 @@ class FileMiddleware(Middleware):
             if word in (os.curdir, os.pardir):
                 continue
             path = os.path.join(path, word)
+        if trailing_slash:
+            path += '/'
+
         return path
             
     def guess_type(self, path):

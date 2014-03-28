@@ -14,53 +14,40 @@
 # limitations under the License.
 
 import os
+import sys
 import re
 import cgi
+import time
 try:
     from urllib import quote, unquote  # python 2
     from urlparse import urljoin  # python 2
 except ImportError:
     from urllib.parse import quote, unquote  # python 3
     from urllib.parse import urljoin  # python 3
-import calendar
-import datetime
-import base64
 try:
     import Cookie  # python 2
 except ImportError:
     import http.cookies as Cookie  # python 3
-import time
-import email.utils
-import hashlib
-import hmac
 import logging
 from io import BytesIO
-
+if sys.version_info[0] == 3:
+    import _io
+    file = _io.BufferedReader  # @ReservedAssignment
+    STR = str
+else:
+    STR = unicode
 from levitas.lib.settings import Settings
 from levitas.lib import utils
-
+from levitas.lib.secure_cookie import SecureCookie
 from .signals import (middleware_instanciated,
                      middleware_request_started,
                      middleware_request_finished)
-from levitas import response_codes
+from levitas import (DEFAULT_ERROR_MESSAGE_FORMAT,
+                     DEFAULT_ERROR_CONTENT_TYPE,
+                     response_codes)
 
 
 log = logging.getLogger("levitas.middleware.middleware")
-
-
-DEFAULT_ERROR_MESSAGE = """\
-<head>
-<title>Error response</title>
-</head>
-<body>
-<h1>Error response</h1>
-<p>Error code %(code)d.
-<p>Message: %(message)s.
-<p>Error code explanation: %(code)s = %(explain)s.
-</body>
-"""
-
-DEFAULT_ERROR_CONTENT_TYPE = "text/html"
 
 
 class Middleware(object):
@@ -86,7 +73,7 @@ class Middleware(object):
     LOG = True
     """ If the request should be logged """
     
-    ERROR_MESSAGE_FORMAT = DEFAULT_ERROR_MESSAGE
+    ERROR_MESSAGE_FORMAT = DEFAULT_ERROR_MESSAGE_FORMAT
     ERROR_CONTENT_TYPE = DEFAULT_ERROR_CONTENT_TYPE
     
     def __init__(self, *args, **kwargs):
@@ -155,6 +142,7 @@ class Middleware(object):
         self._start_response = start_response
         self._environ = environ
         self._readEnviron(environ)
+        self._loadCookies()
         
     def log_request(self, code="-", size="-"):
         if self.LOG:
@@ -202,7 +190,7 @@ class Middleware(object):
     
     def addHeader(self, name, value):
         """ Add a header to the response """
-        self.response_headers.append((name, value))
+        self.response_headers.append((str(name), str(value)))
         
     def getHeader(self, name):
         name = name.upper()
@@ -231,10 +219,15 @@ class Middleware(object):
         
     def start_response(self, cookies=True):
         """ Start the response """
+        log.debug("Start response")
         if self.__responseStarted:
-            log.debug("Response already started")
+            log.error("Response already started")
             return
-        s, l = response_codes[self.response_code]  # @UnusedVariable
+        self.__responseStarted = True
+        try:
+            s, l = response_codes[self.response_code]  # @UnusedVariable
+        except KeyError:
+            s, l = "???", "???"  # @UnusedVariable
         status = "%s %s" % (str(self.response_code), s)
         
         if self.response_code == 200 and cookies:
@@ -253,6 +246,8 @@ class Middleware(object):
                                          middleware=self)
         
     def response_error(self, code, message=None):
+        self.__responseStarted = True
+        log.debug("response_error: %s - %s" % (str(code), str(message)))
         try:
             short, l = response_codes[code]
         except KeyError:
@@ -273,12 +268,12 @@ class Middleware(object):
         status = "%s %s" % (str(code), short)
         if self.request_method != "head" and code >= 200 and code not in (204, 304):
             headers.append(("Content-Length", str(size)))
-            self._start_response(status, headers)
+            self._start_response(status, headers, sys.exc_info())
             return f
         else:
             headers.append(("Content-Length", "0"))
             self._start_response(status, headers)
-            return []
+            return
     
     def response_redirect(self, url, permanent=False):
         """ Redirect to an url """
@@ -286,12 +281,11 @@ class Middleware(object):
         log.debug("redirect to %s" % url)
         self.response_code = 301 if permanent else 302
         # Remove whitespace
-        url = url.encode(self._encoding)
         url = re.sub(r"[\x00-\x20]+", "", url)
+        url = url.encode(self._encoding)
         self.addHeader("Location", urljoin(self.path,
                                            url.decode(self._encoding)))
-        self.start_response()
-        return []
+        return
     
     def response_file(self, f):
         """ Send a file """
@@ -300,8 +294,8 @@ class Middleware(object):
         else:
             return iter(lambda: f.read(self.BLOCKSIZE), "")
         
-    def get_browser_locale(self, default="en"):
-        """Determines the user"s locale from Accept-Language header.
+    def get_browser_language(self):
+        """Determines the user's locale from Accept-Language header.
 
         See http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.4
         """
@@ -310,25 +304,23 @@ class Middleware(object):
             languages = self.request_headers["HTTP_ACCEPT_LANGUAGE"].split(",")
             for language in languages:
                 parts = language.strip().split(";")
-                if len(parts) > 1 and parts[1].startswith("q="):
-                    try:
-                        score = float(parts[1][2:])
-                    except (ValueError, TypeError):
-                        score = 0.0
-                else:
-                    score = 1.0
-                locales.append((parts[0], score))
+                locales.append(parts[0])
         return locales
         
     def get_cookie(self, name, default=None):
         """ Returns the value of a cookie """
         """Gets the value of the cookie with the given name, else default."""
         if name in self.cookies:
-            return self.cookies[name].value.decode(self._encoding)
+            return self.cookies[name].value
         return default
 
-    def set_cookie(self, name, value, domain=None, expires=None, path="/",
-                   expires_days=None, **kwargs):
+    def set_cookie(self, name, value,
+                   domain=None, path="/", httponly=False,
+                   expires=None,
+                   expires_days=None,
+                   expires_hours=None,
+                   expires_minutes=None,
+                   **kwargs):
         """Sets the given cookie name/value with the given options.
 
         Additional keyword arguments are set on the Cookie.Morsel
@@ -336,24 +328,47 @@ class Middleware(object):
         See http://docs.python.org/library/cookie.html#morsel-objects
         for available attributes.
         """
+        
+        # Cookie accepts only type str in both Python 2 and 3 
+        if sys.version_info[0] == 3:
+            if isinstance(name, bytes):
+                name = name.decode(self._encoding)
+            if isinstance(value, bytes):
+                value = value.decode(self._encoding)
+        else:
+            if isinstance(name, unicode):
+                name = name.encode(self._encoding)
+            if isinstance(value, unicode):
+                value = value.encode(self._encoding)
+        
         if re.search(r"[\x00-\x20]", name + value):
             # Don"t let us accidentally inject bad stuff
             raise ValueError("Invalid cookie %r: %r" % (name, value))
-        name = name.encode(self._encoding)
-        value = value.encode(self._encoding)
+        
         new_cookie = Cookie.BaseCookie()
         new_cookie[name] = value
         if domain:
             new_cookie[name]["domain"] = domain
-        if expires_days is not None and not expires:
-            expires = datetime.datetime.utcnow() + datetime.timedelta(
-                days=expires_days)
-        if expires:
-            timestamp = calendar.timegm(expires.utctimetuple())
-            new_cookie[name]["expires"] = email.utils.formatdate(
-                timestamp, localtime=False, usegmt=True)
+        
+        # Set expires
+        if expires is not None:
+            new_cookie[name]["expires"] = expires
+        elif expires_days or expires_hours or expires_minutes:
+            t = time.time()
+            if expires_days:
+                t += expires_days * 24 * 60 * 60
+            if expires_hours:
+                t += expires_hours * 60 * 60
+            if expires_minutes:
+                t += expires_minutes * 60
+                # Tue 08-Apr-2014 14:04:24 GMT
+            new_cookie[name]["expires"] = utils.time2netscape(t)
         if path:
             new_cookie[name]["path"] = path
+            
+        if httponly:
+            new_cookie[name]["httponly"] = True
+            
         for k, v in kwargs.items():
             new_cookie[name][k] = v
         
@@ -362,82 +377,53 @@ class Middleware(object):
     def clear_cookie(self, name, path="/", domain=None):
         """Deletes the cookie with the given name."""
         #expires = datetime.datetime.utcnow() - datetime.timedelta(days=365)
-        expires = datetime.datetime.utcnow() - datetime.timedelta(days=365)
-        self.set_cookie(name, value="", path=path, expires=expires,
-                        domain=domain)
+        if name in self.cookies:
+            t = time.time() - (365 * 24 * 60 * 60)
+            expires = utils.time2netscape(t)
+            self.set_cookie(name, "", path=path, expires=expires,
+                            domain=domain)
+        else:
+            log.error("Cookie %s does not exist" % name)
 
     def clear_all_cookies(self):
         """Deletes all the cookies the user sent with this request."""
         for name in self.cookies.keys():
             self.clear_cookie(name)
 
-    def set_signed_cookie(self, name, value, expires_days=30, **kwargs):
+    def set_signed_cookie(self, name, value,
+                   domain=None, path="/", httponly=False,
+                   expires=None,
+                   expires_days=None,
+                   expires_hours=None,
+                   expires_minutes=None,
+                   **kwargs):
         """Signs and timestamps a cookie so it cannot be forged.
 
-        You must specify the "cookie_secret" setting in your Application
+        You must specify the "cookie_secret" setting in your settings file
         to use this method. It should be a long, random sequence of bytes
         to be used as the HMAC secret for the signature.
 
         To read a cookie set with this method, use get_signed_cookie().
         """
-        timestamp = str(int(time.time()))
-        value = base64.b64encode(value)
-        signature = self._cookie_signature(name, value, timestamp)
-        value = "|".join([value, timestamp, signature])
-        self.set_cookie(name, value, expires_days=expires_days, **kwargs)
+        value = SecureCookie().encode_value(name, value)
+        self.set_cookie(name, value,
+                        domain=domain,
+                        path=path,
+                        httponly=httponly,
+                        expires_days=expires_days,
+                        expires_hours=expires_hours,
+                        expires_minutes=expires_minutes,
+                        **kwargs)
 
     def get_signed_cookie(self, name):
         """Returns the given signed cookie if it validates, or None.
         """
         value = self.get_cookie(name)
-        if not value:
-            return None
         
-        parts = value.split("|")
-        if len(parts) != 3:
-            return None
-        
-        signature = self._cookie_signature(name, parts[0], parts[1])
-        if not self._time_independent_equals(parts[2], signature):
-            log.warning("Invalid cookie signature %r", value)
-            return None
-        
-        timestamp = int(parts[1])
-        if timestamp < time.time() - 31 * 86400:
-            log.warning("Expired cookie %r", value)
-            return None
-        try:
-            value = base64.b64decode(parts[0])
-        except:
-            value = None
-            
-        return value
-    
-    def parse_http_datetime(self, s):
-        return datetime.datetime(*email.utils.parsedate(s)[:6])
-    
-    def _cookie_signature(self, *parts):
-        """ Create a cookie-signature """
-        try:
-            secret = self.settings.cookie_secret
-        except:
-            log.error("Missing cookie_secret in settings!")
-            secret = "levitas_cookie_secret"
-        h = hmac.new(secret,
-                     digestmod=hashlib.sha1)
-        for part in parts:
-            h.update(part)
-        return h.hexdigest()
-        
-    def _time_independent_equals(self, a, b):
-        if len(a) != len(b):
-            return False
-        result = 0
-        for x, y in zip(a, b):
-            result |= ord(x) ^ ord(y)
-        return result == 0
+        return SecureCookie().decode_value(name, value)
             
     def _readEnviron(self, environ):
+                
         for k, v in environ.items():
             if "HTTP_" in k or \
                 "CONTENT_" in k:
@@ -487,14 +473,13 @@ class Middleware(object):
         self.request_method = environ["REQUEST_METHOD"].lower()
         self.query_string = environ.get("QUERY_STRING")
         
-        self._loadCookies()
-        
     def _loadCookies(self):
         """ Load the cookies from the response. """
         if "HTTP_COOKIE" in self.request_headers:
             try:
                 self.cookies.load(self.request_headers["HTTP_COOKIE"])
             except Exception as err:
+                raise
                 log.error("Error loading cookies: %s" % str(err))
         
     def _parseGET(self):
@@ -578,27 +563,35 @@ class Middleware(object):
             # Do not return empty/invalid results
             if isinstance(result, list):
                 if not len(result):
-                    result = ""
+                    result = b""
             elif result is None:
-                result = ""
+                result = b""
             elif not hasattr(result, "__iter__") and \
-                not isinstance(result, (str, bytes)):
+                not isinstance(result, (STR, bytes, file)):
                 return self.response_error(500,
                                            "%s: Method %s returns not iterable object %s"
                                            % (self.__class__.__name__,
                                               self.request_method,
                                               type(result)))
                 
-            # Encode str type to bytes type
-            if isinstance(result, str):
+            if not self.__responseStarted:
+                self.start_response()
+                
+            log.debug("Response type: %s" % type(result))
+            # Encode unicode(python2.7)/str(python3) type to bytes type
+            if isinstance(result, STR):
                 result = result.encode(self._encoding)
             
             # Return the result
             if isinstance(result, bytes):
                 result = [result]
-            if not self.__responseStarted:
-                self.start_response()
-            return result
+                
+            if isinstance(result, file):
+                log.debug("Send file")
+                return self.response_file(result)
+            else:
+                log.debug("Send data")
+                return result
         
         except:
             utils.logTraceback()
