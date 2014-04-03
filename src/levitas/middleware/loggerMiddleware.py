@@ -39,14 +39,14 @@ class LoggerMiddleware(Middleware):
         self.loggerName = loggerName
     
     def post(self):
-        name = self.arguments["name"][0]
+        name = self.request_data["name"][0]
         name = self.loggerName + "." + name
         log = logging.getLogger(name)
-        level = self.arguments["levelname"][0]
+        level = self.request_data["levelname"][0]
         level = logging._levelNames[level]
-        msg = self.arguments["msg"][0]
-        if "args" in self.arguments:
-            args = self.arguments["args"][0]
+        msg = self.request_data["msg"][0]
+        if "args" in self.request_data:
+            args = self.request_data["args"][0]
             msg = msg % args
         msg += " - %s - %s" % (self.remote_host, self.request_headers["HTTP_USER_AGENT"])
         log.log(level, msg)

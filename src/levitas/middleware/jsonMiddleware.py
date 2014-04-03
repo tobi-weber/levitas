@@ -74,7 +74,7 @@ service class %s must be subclass of levitas.middleware.service.Service
     def post(self):
         try:
             service = self.service_class(self, **self.service_attributes)
-            result = ServiceHandler(service).handleData(self.arguments)
+            result = ServiceHandler(service).handleData(self.request_data)
             return self.response_result(result)
         except Exception as e:
             utils.logTraceback()

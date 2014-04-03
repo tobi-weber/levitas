@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2010-2013 Tobias Weber <tobi-weber@gmx.de>
+# Copyright (C) 2010-2014 Tobias Weber <tobi-weber@gmx.de>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
+# you may not use this FILE except in compliance with the License.
 # You may obtain a copy of the License at
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
@@ -20,10 +20,10 @@ import cgi
 import time
 try:
     from urllib import quote, unquote  # python 2
-    from urlparse import urljoin  # python 2
+    from urlparse import urljoin, parse_qs  # python 2
 except ImportError:
     from urllib.parse import quote, unquote  # python 3
-    from urllib.parse import urljoin  # python 3
+    from urllib.parse import urljoin, parse_qs  # python 3
 try:
     import Cookie  # python 2
 except ImportError:
@@ -32,10 +32,11 @@ import logging
 from io import BytesIO
 if sys.version_info[0] == 3:
     import _io
-    file = _io.BufferedReader  # @ReservedAssignment
+    FILE = _io.BufferedReader
     STR = str
 else:
     STR = unicode
+    FILE = file
 from levitas.lib.settings import Settings
 from levitas.lib import utils
 from levitas.lib.secure_cookie import SecureCookie
@@ -96,8 +97,8 @@ class Middleware(object):
         self.path = None
         """ path info """
         
-        self.arguments = None
-        """ Arguments for the GET- or POST-Request """
+        self.request_data = None
+        """ Request data """
         
         self.remote_host = None
         """ Remote host of the request """
@@ -206,7 +207,7 @@ class Middleware(object):
         self.response_code = response_code
         
     def getArguments(self):
-        return self.arguments
+        return self.request_data
     
     def getRemoteHost(self):
         return self.remote_host
@@ -288,7 +289,7 @@ class Middleware(object):
         return
     
     def response_file(self, f):
-        """ Send a file """
+        """ Send a FILE """
         if self.filewrapper:
             return self.filewrapper(f, self.BLOCKSIZE)
         else:
@@ -323,7 +324,7 @@ class Middleware(object):
                    **kwargs):
         """Sets the given cookie name/value with the given options.
 
-        Additional keyword arguments are set on the Cookie.Morsel
+        Additional keyword request_data are set on the Cookie.Morsel
         directly.
         See http://docs.python.org/library/cookie.html#morsel-objects
         for available attributes.
@@ -399,7 +400,7 @@ class Middleware(object):
                    **kwargs):
         """Signs and timestamps a cookie so it cannot be forged.
 
-        You must specify the "cookie_secret" setting in your settings file
+        You must specify the "cookie_secret" setting in your settings FILE
         to use this method. It should be a long, random sequence of bytes
         to be used as the HMAC secret for the signature.
 
@@ -481,21 +482,31 @@ class Middleware(object):
             except Exception as err:
                 raise
                 log.error("Error loading cookies: %s" % str(err))
-        
-    def _parseGET(self):
-        """ Parse the query string in the url """
+                
+    def _parse_qs(self, qs):
         try:
-            arguments = cgi.parse_qs(self.query_string)
-            self.arguments = {}
-            for name, values in arguments.items():
-                values = [v.decode(self._encoding) for v in values if v]
+            arguments = parse_qs(qs)
+            self.request_data = {}
+            for name, _values in arguments.items():
+                values = []
+                for v in _values:
+                    if v:
+                        if not isinstance(v, STR):
+                            v = v.decode(self._encoding)
+                        values.append(v)
                 if values:
-                    self.arguments[name.decode(self._encoding)] = values
+                    if not isinstance(name, STR):
+                        name = name.decode(self._encoding)
+                    self.request_data[name] = values
             return True
         except Exception as err:
             log.error("Failed to parse the form data: %s" % str(err))
             utils.logTraceback()
             return False
+        
+    def _parseGET(self):
+        """ Parse the query string in the url """
+        return self._parse_qs(self.query_string)
         
     def _parsePOST(self):
         """ Parse the form data posted """
@@ -506,22 +517,19 @@ class Middleware(object):
         try:
             if content_type.startswith("text/json") or \
                 content_type.startswith("application/json"):
-                    self.arguments = self.input.read(content_length)
-                    self.arguments = self.arguments.decode(self._encoding)
-                    self.arguments = unquote(self.arguments)
+                    self.request_data = self.input.read(content_length)
+                    self.request_data = self.request_data.decode(self._encoding)
+                    self.request_data = unquote(self.request_data)
                 
             elif content_type.startswith("application/x-www-form-urlencoded"):
                 request_body = self.input.read(content_length)
-                self.arguments = cgi.parse_qs(request_body)
+                return self._parse_qs(request_body)
                 
             elif content_type.startswith("multipart/form-data"):
                 log.debug("Multipart/form-data request")
                 if not content_length:
                     return False
-                if hasattr(self.settings, "upload_path"):
-                    log.debug("Upload-Path: %s" % self.settings.upload_path)
-                    LevitasFieldStorage.temppath = self.settings.upload_path
-                self.arguments = LevitasFieldStorage(fp=self.input,
+                self.request_data = LevitasFieldStorage(fp=self.input,
                                                   environ=self._environ,
                                                   keep_blank_values=True,
                                                   strict_parsing=False)
@@ -533,6 +541,7 @@ class Middleware(object):
     
     def __call__(self, environ, start_response):
         self.initEnviron(environ, start_response)
+        log.info(self.path)
         
         if self.request_method not in self.SUPPORTED_METHODS:
             log.error("Unknown method %s" % self.request_method)
@@ -541,14 +550,14 @@ class Middleware(object):
         
         try:
             
-            # Parse arguments for a GET or POST request
+            # Parse request_data for a GET or POST request
             if self.request_method == "get":
                 if self.query_string:
                     if not self._parseGET():
-                        return self.response_error(500)
+                        return self.response_error(500, "Error parsing query string")
             elif self.request_method == "post":
                 if not self._parsePOST():
-                    return self.response_error(500)
+                    return self.response_error(500, "Error parsing post data")
                 
             # Send request started signal
             middleware_request_started.send(self.__class__,
@@ -567,7 +576,7 @@ class Middleware(object):
             elif result is None:
                 result = b""
             elif not hasattr(result, "__iter__") and \
-                not isinstance(result, (STR, bytes, file)):
+                not isinstance(result, (STR, bytes, FILE)):
                 return self.response_error(500,
                                            "%s: Method %s returns not iterable object %s"
                                            % (self.__class__.__name__,
@@ -586,8 +595,8 @@ class Middleware(object):
             if isinstance(result, bytes):
                 result = [result]
                 
-            if isinstance(result, file):
-                log.debug("Send file")
+            if isinstance(result, FILE):
+                log.debug("Send FILE")
                 return self.response_file(result)
             else:
                 log.debug("Send data")
@@ -598,19 +607,51 @@ class Middleware(object):
             return self.response_error(500)
         
 
+from cStringIO import StringIO
+
+
 class LevitasFieldStorage(cgi.FieldStorage):
-    
-    temppath = None
+
+    def read_single(self):
+        """Internal: read an atomic part."""
+        print("READ_SINGLE")
+        if self.length >= 0:
+            self.read_binary()
+            self.skip_lines()
+        else:
+            self.read_lines()
+        self.file.seek(0)
+
+    def read_binary(self):
+        """Internal: read binary data."""
+        print("READ_BINARY")
+        self.file = self.make_file('b')
+        todo = self.length
+        if todo >= 0:
+            while todo > 0:
+                data = self.fp.read(min(todo, self.bufsize))
+                if not data:
+                    self.done = -1
+                    break
+                self.file.write(data)
+                todo = todo - len(data)
      
     def make_file(self, binary=None):
+        log.debug("MAKE_FILE")
+        settings = Settings()
+        if hasattr(settings, "upload_path"):
+            log.debug("Upload-Path: %s" % settings.upload_path)
+            upload_path = settings.upload_path
+        else:
+            upload_path = None
         log.debug("Handling Fileupload")
-        if self.temppath:
-            if not os.path.exists(self.temppath):
-                log.debug("Create temppath %s" % self.temppath)
-                os.mkdir(self.temppath)
+        if upload_path:
+            if not os.path.exists(upload_path):
+                log.debug("Create upload_path %s" % upload_path)
+                os.mkdir(upload_path)
             # strip leading path from f name to avoid directory traversal attacks
             filename = os.path.basename(self.filename)
-            filepath = os.path.join(self.temppath, filename)
+            filepath = os.path.join(upload_path, filename)
             log.debug("Create filepath %s" % filepath)
             f = open(filepath, "wb")
             return f

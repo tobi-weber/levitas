@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2010-2013 Tobias Weber <tobi-weber@gmx.de>
+# Copyright (C) 2010-2014 Tobias Weber <tobi-weber@gmx.de>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ from time import sleep
 from multiprocessing import Process
 from optparse import OptionParser
 
-from .SETTINGS import SettingMissing
+from .settings import SettingMissing
 
 
 log = logging.getLogger("levitas.lib.daemonize")
@@ -65,7 +65,10 @@ def cli(daemon_class, daemon_args=[], daemon_kwargs={},
         sys.stderr.write(err)
 
 
-class AbstractDaemon(metaclass=abc.ABCMeta):
+class AbstractDaemon:
+    
+    metaclass = abc.ABCMeta
+    
     @abc.abstractmethod
     def start(self):
         pass
@@ -223,6 +226,7 @@ class CLIOptions(object):
             
             if i == len(self.actions) - 1:
                 self.usage += "}"
+        self.usage += "\n"
         
         self.parser = OptionParser(self.usage)
         
@@ -261,6 +265,9 @@ class CLIOptions(object):
             if args[0] in self.actions:
                 self.action = args[0]
         elif not self.action and len(self.actions) > 0:
+            self.parser.print_help()
+            raise CLIOptionError(self.usage)
+        if not self.action in self.actions:
             self.parser.print_help()
             raise CLIOptionError(self.usage)
         

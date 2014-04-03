@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Copyright (C) 2010-2013 Tobias Weber <tobi-weber@gmx.de>
+# Copyright (C) 2010-2014 Tobias Weber <tobi-weber@gmx.de>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from levitas.levitasServer import LevitasServer
+from levitas.server.TestServer import TestServer
 from levitas.lib.daemonize import cli
 
 cli(LevitasServer)

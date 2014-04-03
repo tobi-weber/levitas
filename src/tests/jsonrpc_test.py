@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2010-2013 Tobias Weber <tobi-weber@gmx.de>
+# Copyright (C) 2010-2014 Tobias Weber <tobi-weber@gmx.de>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 
 import unittest
 from json import loads
+import logging
 try:
     from urllib import request  # python 3
 except ImportError:
@@ -23,6 +24,9 @@ except ImportError:
 from levitas.middleware.service import Service
 
 from tests import test
+    
+log = logging.getLogger("levitas.tests.jsonrpc_test")
+
 
 SETTINGS = \
 """
@@ -72,6 +76,8 @@ class JSONRPCTest(unittest.TestCase):
             raise
         
     def test_missing_params(self):
+        log.info("")
+        log.info("### test_missing_params ###")
         data = '{"jsonrpc":"2.0","id":"ID01","method":"getArg"}'
         obj = self._request(data)
         #print(obj)
@@ -79,6 +85,8 @@ class JSONRPCTest(unittest.TestCase):
         self.assertEqual(obj["result"], "OK")
     
     def test_missing_id(self):
+        log.info("")
+        log.info("### test_missing_id ###")
         data = '{"jsonrpc":"2.0", "method":"get"}'
         obj = self._request(data)
         #print(obj)
@@ -86,6 +94,8 @@ class JSONRPCTest(unittest.TestCase):
         self.assertEqual(obj["error"]["code"], -32600)
         
     def test_unknown_method(self):
+        log.info("")
+        log.info("### test_unknown_method ###")
         data = '{"jsonrpc":"2.0","id":"ID01", "method":"get_unknown_method"}'
         obj = self._request(data)
         #print(obj)
@@ -93,6 +103,8 @@ class JSONRPCTest(unittest.TestCase):
         self.assertEqual(obj["error"]["code"], -32601)
         
     def test_missing_protocol(self):
+        log.info("")
+        log.info("### test_missing_protocol ###")
         data = '{"id":"ID01", "method":"get"}'
         obj = self._request(data)
         #print(obj)
@@ -100,6 +112,8 @@ class JSONRPCTest(unittest.TestCase):
         self.assertEqual(obj["error"]["code"], -32600)
         
     def test_wrong_protocol(self):
+        log.info("")
+        log.info("### test_wrong_protocol ###")
         data = '{"jsonrpc":"1.0", "id":"ID01", "method":"get"}'
         obj = self._request(data)
         #print(obj)
@@ -107,6 +121,8 @@ class JSONRPCTest(unittest.TestCase):
         self.assertEqual(obj["error"]["code"], -32600)
         
     def test_parse_error(self):
+        log.info("")
+        log.info("### test_parse_error ###")
         data = '{jsonrpc":"2.0","id":"ID01","method":"get"}'
         obj = self._request(data)
         #print(obj)
@@ -114,6 +130,8 @@ class JSONRPCTest(unittest.TestCase):
         self.assertEqual(obj["error"]["code"], -32603)
         
     def test_set_args(self):
+        log.info("")
+        log.info("### test_set_args ###")
         data = '{"jsonrpc":"2.0","id":"ID01","method":"setArgs","params":["arg1","arg2","arg3"]}' # @IgnorePep8
         obj = self._request(data)
         #print(obj)
@@ -121,6 +139,8 @@ class JSONRPCTest(unittest.TestCase):
         self.assertEqual(obj["result"], "Args: arg1, arg2, arg3")
         
     def test_invalid_args(self):
+        log.info("")
+        log.info("### test_invalid_args ###")
         data = '{"jsonrpc":"2.0","id":"ID01","method":"setArgs","params":["arg1","arg2"]}' # @IgnorePep8
         obj = self._request(data)
         #print(obj)
@@ -128,6 +148,8 @@ class JSONRPCTest(unittest.TestCase):
         self.assertEqual(obj["error"]["code"], -32602, str(obj))
         
     def test_set_named_args(self):
+        log.info("")
+        log.info("### test_set_named_args ###")
         data = '{"jsonrpc":"2.0","id":"ID01","method":"setArgs","params":{"arg1":"1","arg2":"2","arg3":"3"}}' # @IgnorePep8
         obj = self._request(data)
         #print(obj)
@@ -135,6 +157,8 @@ class JSONRPCTest(unittest.TestCase):
         self.assertEqual(obj["result"], "Args: 1, 2, 3", str(obj))
         
     def test_invalid_named_args(self):
+        log.info("")
+        log.info("### test_invalid_named_args ###")
         data = '{"jsonrpc":"2.0","id":"ID01","method":"setArgs","params":{"arg1":"arg1","arg2":"arg2","arg4":"arg3"}}' # @IgnorePep8
         obj = self._request(data)
         #print(obj)
@@ -142,6 +166,8 @@ class JSONRPCTest(unittest.TestCase):
         self.assertEqual(obj["error"]["code"], -32602, str(obj))
         
     def test_umlaute(self):
+        log.info("")
+        log.info("### test_umlaute ###")
         data = u'{"jsonrpc":"2.0","id":"ID01","method":"umlaute","params":["äöüß"]}'
         obj = self._request(data)
         #print(obj)
