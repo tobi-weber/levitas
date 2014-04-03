@@ -259,16 +259,7 @@ class Test_post_args(Middleware):
 class Test_post_fileupload(Middleware):
     
     def post(self):
-        print(self.request_data)
-        print("#############")
-        for f in self.request_data:
-            print(f)
-            v = self.request_data[f]
-            print(type(v))
-            print(v.file)
-        print("#############")
-            
-        return []
+        return "OK"
     
     
 class MiddlewareTest(unittest.TestCase):
@@ -484,14 +475,14 @@ class MiddlewareTest(unittest.TestCase):
         _boundary_chars = string.digits + string.ascii_letters
         boundary = ''.join(random.choice(_boundary_chars)
                            for i in range(30))  # @UnusedVariable
-        #fields = {"arg1": "test1", "arg2": "test2"}
-        #for name, value in fields.items():
-        #    lines.extend((
-        #        '--{0}'.format(boundary),
-        #        'Content-Disposition: form-data; name="{0}"'.format(escape_quote(name)),
-        #        '',
-        #        str(value),
-        #    ))
+        fields = {"arg1": "test1", "arg2": "test2"}
+        for name, value in fields.items():
+            lines.extend((
+                '--{0}'.format(boundary),
+                'Content-Disposition: form-data; name="{0}"'.format(escape_quote(name)),
+                '',
+                str(value),
+            ))
         
         # multipart/form-data File
         mimetype = "image/png"
@@ -528,7 +519,12 @@ class MiddlewareTest(unittest.TestCase):
         
         # Send multipart/form-data
         obj = self._request("post_fileupload", data=body)
-        print(obj)
+        try:
+            data = obj.read()
+        except:
+            data = type(obj)
+        
+        self.assertEqual(data, b"OK", data)
    
         
 def run():

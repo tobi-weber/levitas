@@ -98,7 +98,7 @@ class Daemonizer(Process):
     
     def read_pidfile(self):
         try:
-            f = file(self.pidfile, "r")
+            f = open(self.pidfile, "r")
             pid = int(f.read().strip())
             f.close()
         except IOError:
@@ -207,13 +207,9 @@ class CLIOptionError(Exception):
 
 class CLIOptions(object):
     
-    def __init__(self, name, custom_actions=None):
+    def __init__(self, name):
         self.name = name
-            
-        if custom_actions is None:
-            self.actions = ["start", "stop", "restart", "foreground"]
-        else:
-            self.actions = custom_actions
+        self.actions = ["start", "stop", "restart", "foreground"]
         
         self.usage = "Usage: %s [OPTION]" % sys.argv[0]
         for i in range(len(self.actions)):
@@ -264,12 +260,11 @@ class CLIOptions(object):
         if len(args) == 1:
             if args[0] in self.actions:
                 self.action = args[0]
-        elif not self.action and len(self.actions) > 0:
-            self.parser.print_help()
-            raise CLIOptionError(self.usage)
-        if not self.action in self.actions:
-            self.parser.print_help()
-            raise CLIOptionError(self.usage)
+            else:
+                self.parser.print_help()
+                raise CLIOptionError(self.usage)
+        elif len(args) == 0:
+            self.action = "foreground"
         
         logfile = None
         logfilecount = 0
@@ -302,7 +297,8 @@ class CLIOptions(object):
             h = logging.StreamHandler()
         else:
             from logging.handlers import TimedRotatingFileHandler
-            h = TimedRotatingFileHandler(logfile, when="midnight", backupCount=logfilecount)
+            h = TimedRotatingFileHandler(logfile, when="midnight",
+                                         backupCount=logfilecount)
             h.doRollover()
             
         if verbose:

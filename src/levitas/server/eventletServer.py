@@ -14,20 +14,17 @@
 # limitations under the License.
 
 import logging
-from wsgiref.simple_server import (make_server,
-                                   WSGIServer,
-                                   WSGIRequestHandler)
-    
+
 from .baseServer import BaseServer
 from levitas.lib import utils
 
 
-log = logging.getLogger("levitas.server.testServer")
+log = logging.getLogger("levitas.server.eventletServer")
 
 
-class FapwsServer(BaseServer):
+class EventletServer(BaseServer):
     """
-    Test WSGI Server.
+    Eventlet WSGI Server.
     
     Example SETTINGS entry
     ======================
@@ -37,15 +34,12 @@ class FapwsServer(BaseServer):
             
     def start(self):
         try:
-            httpd = make_server(self.server_address[0],
-                                self.server_address[1],
-                                self.app,
-                                server_class=WSGIServer,
-                                handler_class=WSGIRequestHandler)
-            #httpd.socket.settimeout(0)
-            httpd.serve_forever()
+            import eventlet
+            from eventlet import wsgi
+            wsgi.server(eventlet.listen(self.server_address,
+                                        backlog=500),
+                        self.app, max_size=8000)
         except:
             utils.logTraceback()
         finally:
             log.info("HTTPD stopped")
-            

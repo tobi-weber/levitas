@@ -1,5 +1,6 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Copyright (C) 2010-2013 Tobias Weber <tobi-weber@gmx.de>
+# Copyright (C) 2010-2014 Tobias Weber <tobi-weber@gmx.de>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,25 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from levitas.levitasServer import LevitasServer
-from levitas.lib.winservice import cli, WinService
+from levitas.server.cherrypyServer import CherrypyServer
+from levitas.lib.daemonize import cli
 
-import win32api  # @UnresolvedImport
-
-
-class LevitasServerService(WinService):
-    
-    def __init__(self, args):
-        WinService.__init__(self, args)
-        self._server = LevitasServer()
-    
-    def start(self):
-        self._server.start()
-        
-    def stop(self):
-        self._server.stop()
-
-
-cli(LevitasServerService, 'levitasServer', 'Levitas Webserver')
-
-
+cli(CherrypyServer)

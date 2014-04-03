@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from levitas.server.TestServer import TestServer
+from levitas.server.eventletServer import EventletServer
 from levitas.lib.daemonize import cli
 
-cli(LevitasServer)
+cli(EventletServer)

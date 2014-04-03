@@ -61,8 +61,8 @@ class Middleware(object):
         # A secret to sign cookies
         cookie_secret = "my_cookie_secret"
         
-        # Path for uploaded files
-        upload_path = "/path/to/upload/files"
+        # Custom cgi.FieldStorage class
+        fieldstorage_class = LevitasFieldStorage
     """
     
     SUPPORTED_METHODS = ("get", "head", "post", "delete", "put")
@@ -133,6 +133,11 @@ class Middleware(object):
             self._encoding = self.settings.encoding
         else:
             self._encoding = "utf-8"
+        
+        if hasattr(self.settings, "fieldstorage_class"):
+            self._fieldstorage_class = self.settings.fieldstorage_class
+        else:
+            self._fieldstorage_class = cgi.FieldStorage
         
         # Send instanciated signal
         middleware_instanciated.send(self.__class__,
@@ -529,7 +534,7 @@ class Middleware(object):
                 log.debug("Multipart/form-data request")
                 if not content_length:
                     return False
-                self.request_data = LevitasFieldStorage(fp=self.input,
+                self.request_data = self._fieldstorage_class(fp=self.input,
                                                   environ=self._environ,
                                                   keep_blank_values=True,
                                                   strict_parsing=False)
@@ -606,56 +611,3 @@ class Middleware(object):
             utils.logTraceback()
             return self.response_error(500)
         
-
-from cStringIO import StringIO
-
-
-class LevitasFieldStorage(cgi.FieldStorage):
-
-    def read_single(self):
-        """Internal: read an atomic part."""
-        print("READ_SINGLE")
-        if self.length >= 0:
-            self.read_binary()
-            self.skip_lines()
-        else:
-            self.read_lines()
-        self.file.seek(0)
-
-    def read_binary(self):
-        """Internal: read binary data."""
-        print("READ_BINARY")
-        self.file = self.make_file('b')
-        todo = self.length
-        if todo >= 0:
-            while todo > 0:
-                data = self.fp.read(min(todo, self.bufsize))
-                if not data:
-                    self.done = -1
-                    break
-                self.file.write(data)
-                todo = todo - len(data)
-     
-    def make_file(self, binary=None):
-        log.debug("MAKE_FILE")
-        settings = Settings()
-        if hasattr(settings, "upload_path"):
-            log.debug("Upload-Path: %s" % settings.upload_path)
-            upload_path = settings.upload_path
-        else:
-            upload_path = None
-        log.debug("Handling Fileupload")
-        if upload_path:
-            if not os.path.exists(upload_path):
-                log.debug("Create upload_path %s" % upload_path)
-                os.mkdir(upload_path)
-            # strip leading path from f name to avoid directory traversal attacks
-            filename = os.path.basename(self.filename)
-            filepath = os.path.join(upload_path, filename)
-            log.debug("Create filepath %s" % filepath)
-            f = open(filepath, "wb")
-            return f
-        else:
-            import tempfile
-            log.debug("Create Tempfile")
-            return tempfile.TemporaryFile(mode="w+b")
