@@ -15,17 +15,52 @@
 
 import logging
 
-from tests import (jsonrpc_test,
-                   middleware_test)
+from tests import (jsonMiddlewareTest,
+                   middlewareTest,
+                   fileMiddlewareTest)
 
+SEPERATOR1 = "=" * 70
+SEPERATOR2 = "-" * 70
+
+
+def printResult(name, res):
+    def printError(flavour, errors):
+        for test, err in errors:
+            print("")
+            print("%s: %s" % (flavour, res.getDescription(test)))
+            print(SEPERATOR2)
+            print("%s" % err)
+    print("")
+    print(SEPERATOR1)
+    print("%s %d tests" % (name, res.testsRun))
+    print(SEPERATOR2)
+    print("Errors: %d" % len(res.errors))
+    print("Failures: %d" % len(res.failures))
+    if res.errors:
+        printError("ERROR", res.errors)
+    if res.failures:
+        printError("FAIL", res.failures)
+    print("")
     
-if __name__ == "__main__":
+    
+def main():
     log = logging.getLogger()
     log.setLevel(logging.DEBUG)
     handler = logging.StreamHandler()
     formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
     handler.setFormatter(formatter)
     log.addHandler(handler)
-    jsonrpc_test.run()
-    middleware_test.run()
+    
+    results = {}
+    #results["Middleware"] = middlewareTest.run()
+    #results["JsonMiddleware"] = jsonMiddlewareTest.run()
+    results["FileMiddleware"] = fileMiddlewareTest.run()
+    
+    for k, v in results.items():
+        printResult(k, v)
+    
+if __name__ == "__main__":
+    main()
+    
+    
     

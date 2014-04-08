@@ -39,7 +39,7 @@ class EventletServer(BaseServer):
             wsgi.server(eventlet.listen(self.server_address,
                                         backlog=500),
                         self.app, max_size=8000)
-        except:
-            utils.logTraceback()
+        except Exception as err:
+            log.error(str(err), exc_info=True)
         finally:
             log.info("HTTPD stopped")

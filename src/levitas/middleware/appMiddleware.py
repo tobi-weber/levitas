@@ -38,12 +38,12 @@ class AppMiddleware(FileMiddleware):
         """
         FileMiddleware.__init__(self, path)
         if disable_http_caching:
-            AppMiddleware.CACHE = {}
+            self.cache = {}
         
     def get(self):
         if os.path.isdir(self.fpath):
             if not self.path.endswith("/"):
-                return self.response_redirect(self.path + "/")
+                return self.redirect(self.path + "/")
             for index in "index.html", "index.htm":
                 index = os.path.join(self.fpath, index)
                 if os.path.exists(index):
@@ -51,7 +51,7 @@ class AppMiddleware(FileMiddleware):
                     self.prepareFile()
                     break
             else:
-                return self.response_error(404)
-        return self.response_file()
+                return self.responseError(404)
+        return self._responseFile()
     
     

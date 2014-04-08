@@ -42,4 +42,4 @@ class RedirectMiddleware(Middleware):
         self._permanent = permanent
 
     def get(self):
-        return self.response_redirect(self._url, permanent=self._permanent)
+        return self.redirect(self._url, permanent=self._permanent)

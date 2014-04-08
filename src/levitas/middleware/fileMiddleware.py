@@ -23,7 +23,10 @@ except ImportError:
 import posixpath
 import logging
 import time
-import datetime
+try:
+    from cookielib import http2time  # python 2
+except ImportError:
+    from http.cookiejar import http2time  # python 3
 
 from levitas.lib import utils
 
@@ -47,37 +50,39 @@ class FileMiddleware(Middleware):
     
     MIMETYPES = {}
     
-    CACHE = {   ".htm": {"max_age": 360 * 24 * 60 * 60,
-                         "must_revalidate": True
-                        },
-                ".html": {"max_age": 360 * 24 * 60 * 60,
-                          "must_revalidate": True
-                        },
-                ".ico": {"max_age": 360 * 24 * 60 * 60,
-                         "must_revalidate": True
-                        },
-                ".jpg": {"max_age": 360 * 24 * 60 * 60,
-                         "must_revalidate": True
-                        },
-                ".jpeg": {"max_age": 360 * 24 * 60 * 60,
-                          "must_revalidate": True
-                        },
-                ".png": {"max_age": 360 * 24 * 60 * 60,
-                         "must_revalidate": True
-                        },
-                ".gif": {"max_age": 360 * 24 * 60 * 60,
-                         "must_revalidate": True
-                        },
-                ".swf": {"max_age": 360 * 24 * 60 * 60,
-                         "must_revalidate": True
-                        },
-                ".js": {"max_age": 360 * 24 * 60 * 60,
-                        "must_revalidate": True
-                        },
-                ".css": {"max_age": 360 * 24 * 60 * 60,
-                         "must_revalidate": True
-                        },
-              }
+    DAY_SEC = 360 * 24 * 60 * 60
+    
+    CACHE = {".htm": {"max_age": DAY_SEC,
+                      "must_revalidate": True
+                     },
+             ".html": {"max_age": DAY_SEC,
+                       "must_revalidate": True
+                      },
+             ".ico": {"max_age": DAY_SEC,
+                      "must_revalidate": True
+                     },
+             ".jpg": {"max_age": DAY_SEC,
+                      "must_revalidate": True
+                     },
+             ".jpeg": {"max_age": DAY_SEC,
+                       "must_revalidate": True
+                      },
+             ".png": {"max_age": DAY_SEC,
+                      "must_revalidate": True
+                     },
+             ".gif": {"max_age": DAY_SEC,
+                      "must_revalidate": True
+                     },
+             ".swf": {"max_age": DAY_SEC,
+                      "must_revalidate": True
+                     },
+             ".js": {"max_age": DAY_SEC,
+                     "must_revalidate": True
+                    },
+             ".css": {"max_age": DAY_SEC,
+                      "must_revalidate": True
+                     },
+             }
     
     def __init__(self, path):
         """
@@ -93,12 +98,14 @@ class FileMiddleware(Middleware):
         """
         self.ctype = ""
         """ The content-type of the file"""
-        self.mode = "rb"
-        """ file-mode """
         self.size = 0
         """ file-size """
         self.fpath = None
         """ absolute path of the file"""
+        if hasattr(self.settings, "filecache"):
+            self.cache = self.settings.filecache
+        else:
+            self.cache = FileMiddleware.CACHE
         
     def prepare(self):
         self.preparePath()
@@ -109,48 +116,37 @@ class FileMiddleware(Middleware):
         self.fpath = self.translate_path(self.path, self.static_path)
     
     def prepareFile(self):
-        """ set the content-type, file-mode and the file-size """
+        """ set the content-type and the file-size """
         if self.fpath:
             self.ctype = self.guess_type(self.fpath)
-            if self.ctype.startswith("text/"):
-                self.mode = "r"
-            elif self.ctype == "application/javascript":
-                self.mode = "r"
             if os.path.exists(self.fpath):
                 self.size = os.stat(self.fpath)[stat.ST_SIZE]
             else:
                 self.size = 0
         
     def get(self):
-        return self.response_file()
-        
-    def head(self):
-        return self.get()
-        
-    def response_file(self, f=None):
+        f = self.getFile(self.fpath)
         if f is None:
-            f = self.getFile(self.fpath)
-        if f is None:
-            return self.response_error(404, "File not found")
+            return self.responseError(404)
         
         self.prepareCacheHeaders()
         
         if self.checkCacheInfo(self.fpath):
             self.response_code = 304
-            self.start_response()
-            return []
+            return
         
-        self.response_code = 200
         self.addHeader("Content-type", self.ctype)
          
         self.addHeader("Content-Length", str(self.size))
-        self.start_response()
 
-        return Middleware.response_file(self, f)
+        return f
+        
+    def head(self):
+        return self.get()
         
     def getFile(self, path):
         try:
-            f = open(path, self.mode)
+            f = open(path, "r+b")
             return f
         except IOError as e:
             log.debug(str(e))
@@ -160,11 +156,9 @@ class FileMiddleware(Middleware):
         try:
             mtime = self.get_mtime(path)
             if "HTTP_IF_MODIFIED_SINCE" in self.request_headers:
-                # Convert to localtime
                 if_modified_since = self.request_headers["HTTP_IF_MODIFIED_SINCE"]
                 try:
-                    if_modified_since = self.parse_http_datetime(if_modified_since)
-                    if_modified_since = time.mktime(if_modified_since.timetuple())
+                    if_modified_since = http2time(if_modified_since)
                 except Exception as err:
                     log.error(err)
                     return False
@@ -174,21 +168,21 @@ class FileMiddleware(Middleware):
                     return True
             else:
                 return False
-        except:
-            utils.logTraceback()
+        except Exception as err:
+            log.error(str(err), exc_info=True)
             return False
         
     def prepareCacheHeaders(self):
         ext = os.path.splitext(self.fpath)[1].lower()
-        if ext in list(self.CACHE.keys()):
-            self.setCacheHeaders(self.fpath, **self.CACHE[ext])
+        if ext in list(self.cache.keys()):
+            self.setCacheHeaders(self.fpath, **self.cache[ext])
         else:
             self.setCacheHeaders(self.fpath)
         
     def setCacheHeaders(self, path, no_cache=False, no_store=False,
                         max_age=0, must_revalidate=False):
-        
-        last_modified = time.ctime(self.get_mtime(path))
+        t = self.get_mtime(path)
+        last_modified = utils.time2netscape(t)
         self.addHeader("Last-Modified", last_modified)
         #expires = asctime(gmtime(time() + expires_secs))
         #self.addHeader("Expires", expires)
@@ -214,11 +208,10 @@ class FileMiddleware(Middleware):
     def get_mtime(self, path):
         try:
             mtime = os.path.getmtime(path)
-        except:
-            utils.logTraceback()
-            return
-        
-        mtime = time.mktime(datetime.datetime.utcfromtimestamp(mtime).timetuple())
+        except Exception as err:
+            log.error("Unable to get modification time of file %s" % path)
+            log.error(str(err), exc_info=True)
+            return time.time()
         
         return mtime
         

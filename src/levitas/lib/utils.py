@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import traceback
-import logging
 import time
 import datetime
 import email.utils
@@ -23,14 +22,6 @@ import email.utils
 def getTraceback():
     return traceback.format_exc()
 
-
-def logTraceback():
-    logger = logging.getLogger()
-    logger.error("===== TRACEBACK =====")
-    for line in getTraceback().split("\n"):
-        logger.error(line)
-    logger.error("=====================")
-    
     
 DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -60,5 +51,5 @@ def time2netscape(t=None):
     year, mon, mday, hour, min, sec, wday = time.gmtime(t)[:7]  # @ReservedAssignment
     return "%s, %02d-%s-%04d %02d:%02d:%02d GMT" % (
         DAYS[wday], mday, MONTHS[mon - 1], year, hour, min, sec)
-    
+ 
     

@@ -41,7 +41,7 @@ class CherrypyServer(BaseServer):
                                                    request_queue_size=500,
                                                    server_name='localhost')
             server.start()
-        except:
-            utils.logTraceback()
+        except Exception as err:
+            log.error(str(err), exc_info=True)
         finally:
             log.info("HTTPD stopped")

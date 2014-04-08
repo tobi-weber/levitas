@@ -28,6 +28,9 @@ deb:
 	fakeroot debian/rules clean
 	make clean
 
+test:
+	cd src; $(PYTHON) test.py
+	
 doc:
 	cd src; epydoc -v --html --debug --no-sourcecode --graph all --output=../api $(PROJECT)
 	

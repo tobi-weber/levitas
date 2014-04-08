@@ -54,5 +54,5 @@ class LoggerMiddleware(Middleware):
         self.addHeader("Content-Length", str(len(result)))
         self.addHeader("Content-type", "text/plain; charset=utf-8")
         self.start_response()
-        yield result
+        return result
         

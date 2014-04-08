@@ -123,10 +123,10 @@ class WSGIHandler(object):
         factory = MiddlewareFactory(regex, handler, **kwargs)
         self.factories.append(factory)
         
-    def _error(self, environ, start_response, code):
+    def _error(self, environ, _startResponse, code):
         middleware = Middleware()
-        middleware.initEnviron(environ, start_response)
-        return middleware.response_error(code)
+        middleware.initEnviron(environ, _startResponse)
+        return middleware.responseError(code)
         
     def _initLogging(self, logfile=None, logfilecount=0, verbose=False):
         if logfile is None:
@@ -148,7 +148,7 @@ class WSGIHandler(object):
         h.setFormatter(formatter)
         log.addHandler(h)
         
-    def __call__(self, environ, start_response):
+    def __call__(self, environ, _startResponse):
         #log.debug("Application call %d" % os.getpid())
         
         # Send called signal
@@ -162,24 +162,24 @@ class WSGIHandler(object):
             self.end_headers()
             try:
                 f = open(self.settings.favicon)
-                start_response("200 OK", [("Content-type", "image/x-icon")])
+                _startResponse("200 OK", [("Content-type", "image/x-icon")])
                 return f
             except:
-                return self._error(environ, start_response, 404)
+                return self._error(environ, _startResponse, 404)
             
         # Look up factory for current path and call it.
         path = environ["PATH_INFO"]
         for factory in self.factories:
             if factory.match(path):
                 try:
-                    return factory(environ, start_response)
-                except:
-                    utils.logTraceback()
-                    return self._error(environ, start_response, 500)
+                    return factory(environ, _startResponse)
+                except Exception as err:
+                    log.error(str(err), exc_info=True)
+                    return self._error(environ, _startResponse, 500)
                 break
         else:
             log.error("No factory found for %s" % path)
-            return self._error(environ, start_response, 404)
+            return self._error(environ, _startResponse, 404)
 
 
 

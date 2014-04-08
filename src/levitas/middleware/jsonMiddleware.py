@@ -16,6 +16,10 @@
 import logging
 from json import JSONDecoder, JSONEncoder
 from io import BytesIO
+try:
+    from urllib import unquote  # python 2
+except ImportError:
+    from urllib.parse import unquote  # python 3
 
 from levitas.lib import utils
 
@@ -77,8 +81,8 @@ service class %s must be subclass of levitas.middleware.service.Service
             result = ServiceHandler(service).handleData(self.request_data)
             return self.response_result(result)
         except Exception as e:
-            utils.logTraceback()
-            return self.response_error(500, str(e))
+            log.debug(str(e), exc_info=True)
+            return self.responseError(500, str(e))
         
     def response_result(self, result):
         f = BytesIO()
@@ -89,8 +93,27 @@ service class %s must be subclass of levitas.middleware.service.Service
         self.addHeader("Content-type", "application/json-rpc; charset=utf-8")
         self.addHeader("Content-Length", str(size))
         self.addHeader("Cache-Control", "no-cache")
-        self.start_response()
+        self._startResponse()
         return f
+        
+    def parsePOST(self):
+        """ Parse the form data posted """
+        content_length = self.request_headers["CONTENT_LENGTH"]
+        content_length = int(content_length)
+        content_type = self.request_headers["CONTENT_TYPE"]
+        log.debug("POST: %s, Content-Length: %d" % (content_type, content_length))
+        try:
+            if content_type.startswith("text/json") or \
+                content_type.startswith("application/json"):
+                self.request_data = self.input.read(content_length)
+                self.request_data = self.request_data.decode(self._encoding)
+                self.request_data = unquote(self.request_data)
+                return 0
+            else:
+                return 415
+        except Exception as err:
+            log.error("Failed to parse the form data: %s" % str(err), exc_info=True)
+            return 500
         
     
 class ServiceHandler:
@@ -107,8 +130,7 @@ class ServiceHandler:
             return result
         except Exception as err:
             log.error("Internal error: %s" % str(err))
-            log.error(data)
-            utils.logTraceback()
+            log.error(data, exc_info=True)
             return self.__getError(None, -32603, err)
 
     def handleRequest(self, req):
@@ -166,16 +188,13 @@ class ServiceHandler:
                 
             return data
         except TypeError as err:
-            log.error("Invalid params: %s" % str(err))
-            utils.logTraceback()
+            log.error("Invalid params: %s" % str(err), exc_info=True)
             return self.__getError(idnr, -32602, err)
         except AttributeError as err:
-            log.error("Parse error: %s" % str(err))
-            utils.logTraceback()
+            log.error("Parse error: %s" % str(err), exc_info=True)
             return self.__getError(idnr, -32700, err)
         except ValueError as err:
-            log.error("Parse error: %s" % str(err))
-            utils.logTraceback()
+            log.error("Parse error: %s" % str(err), exc_info=True)
             return self.__getError(idnr, -32700, err)
     
     def __getResult(self, idnr, result):
@@ -184,8 +203,7 @@ class ServiceHandler:
         try:
             return self.encoder.encode(obj)
         except Exception as err:
-            log.error("JSON failed to encode: %s" % str(err))
-            utils.logTraceback()
+            log.error("JSON failed to encode: %s" % str(err), exc_info=True)
             return self.__getError(idnr, -32603, err)
             
     def __getError(self, idnr, code, execption):
@@ -203,6 +221,6 @@ class ServiceHandler:
         try:
             return self.encoder.encode(obj)
         except Exception as err:
-            return self.response_error(500, str(err))
+            return self.responseError(500, str(err))
         
         return obj

@@ -55,8 +55,8 @@ class Settings(Singleton):
             %s """ % (name, e, t)
             log.error(error)
             raise ImportError(error)
-        except:
-            utils.logTraceback()
+        except Exception as err:
+            log.error(str(err), exc_info=True)
             raise
             
         for setting in dir(SETTINGS):

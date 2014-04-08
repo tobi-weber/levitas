@@ -44,8 +44,8 @@ class TestServer(BaseServer):
                                 handler_class=WSGIRequestHandler)
             #httpd.socket.settimeout(0)
             httpd.serve_forever()
-        except:
-            utils.logTraceback()
+        except Exception as err:
+            log.error(str(err), exc_info=True)
         finally:
             log.info("HTTPD stopped")
             

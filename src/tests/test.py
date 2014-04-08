@@ -15,17 +15,43 @@
 
 import unittest
 import time
+try:
+    from urllib import request  # python 3
+except ImportError:
+    import urllib2 as request  # python 2
 
 from tests import server
 
 
-def run(SETTINGS, module):
+class BaseTest(unittest.TestCase):
+    
+    def setUp(self):
+        self.headers = {}
+        self.opener = request.build_opener()
+        self.url = "http://localhost:8987/"
+        
+    def _request(self, path, data=None):
+        try:
+            url = self.url + path
+            print("Call url: %s" % url)
+            req = request.Request(url,
+                                  data=data,
+                                  headers=self.headers)
+            response = self.opener.open(req)
+        except Exception as err:
+            return err
+        
+        return response
+
+
+def run(SETTINGS, test):
     server.init_settings(SETTINGS)
-    module = module
     srv = server.WSGIServerThread()
     srv.start()
     time.sleep(0.5)
-    unittest.main(module=module, exit=False)
+    suite = unittest.TestLoader().loadTestsFromTestCase(test)
+    res = unittest.TextTestRunner(verbosity=2).run(suite)
     srv.stop()
-
+    
+    return res
     

@@ -19,10 +19,10 @@ import re
 import cgi
 import time
 try:
-    from urllib import quote, unquote  # python 2
+    from urllib import quote  # python 2
     from urlparse import urljoin, parse_qs  # python 2
 except ImportError:
-    from urllib.parse import quote, unquote  # python 3
+    from urllib.parse import quote  # python 3
     from urllib.parse import urljoin, parse_qs  # python 3
 try:
     import Cookie  # python 2
@@ -142,54 +142,6 @@ class Middleware(object):
         # Send instanciated signal
         middleware_instanciated.send(self.__class__,
                                      middleware=self)
-        
-    def initEnviron(self, environ, start_response):
-        """ Initialize the wsgi environment """
-        self._start_response = start_response
-        self._environ = environ
-        self._readEnviron(environ)
-        self._loadCookies()
-        
-    def log_request(self, code="-", size="-"):
-        if self.LOG:
-            self.log_message(logging.INFO, '"%s %s" %s %s',
-                              self.request_method, self.path, str(code), str(size))
-
-    def log_error(self, f, *args):
-        self.log_message(logging.ERROR, f, *args)
-
-    def log_message(self, level, f, *args):
-        msg = "(%s) " % os.getpid() + f % args + " " + self.remote_host
-        log.log(level, msg)
-        
-    def prepare(self):
-        """ Called before the request-method is called. """
-        pass
-
-    def head(self):
-        """ Can be overwritten by subclass """
-        log.error("head method not implemented in %s" % str(self.__class__))
-        return self.response_error(405)
-
-    def get(self):
-        """ Can be overwritten by subclass """
-        log.error("get method not implemented in %s" % str(self.__class__))
-        return self.response_error(405)
-
-    def post(self):
-        """ Can be overwritten by subclass """
-        log.error("post method not implemented in %s" % str(self.__class__))
-        return self.response_error(405)
-
-    def delete(self):
-        """ Can be overwritten by subclass """
-        log.error("delete method not implemented in %s" % str(self.__class__))
-        return self.response_error(405)
-    
-    def put(self):
-        """ Maybe overwritten by subclass """
-        log.error("put method not implemented in %s" % str(self.__class__))
-        return self.response_error(405)
     
     def getPath(self):
         return self.path
@@ -223,37 +175,95 @@ class Middleware(object):
     def getUserAgent(self):
         return self.user_agent
         
-    def start_response(self, cookies=True):
-        """ Start the response """
-        log.debug("Start response")
-        if self.__responseStarted:
-            log.error("Response already started")
-            return
-        self.__responseStarted = True
+    def initEnviron(self, environ, start_response):
+        """ Initialize the wsgi environment """
+        self._start_response = start_response
+        self._environ = environ
+        self._readEnviron(environ)
+        self._loadCookies()
+        
+    def log_request(self, code="-", size="-"):
+        if self.LOG:
+            self.log_message(logging.INFO, '"%s %s" %s %s',
+                              self.request_method, self.path, str(code), str(size))
+
+    def log_error(self, f, *args):
+        self.log_message(logging.ERROR, f, *args)
+
+    def log_message(self, level, f, *args):
+        msg = "(%s) " % os.getpid() + f % args + " " + self.remote_host
+        log.log(level, msg)
+        
+    def prepare(self):
+        """
+        Called before the request-method is called.
+        Can be overridden by sub-classes.
+        """
+        pass
+
+    def head(self):
+        """ Can be overridden by sub-classes. """
+        log.error("head method not implemented in %s" % str(self.__class__))
+        return self.responseError(405)
+
+    def get(self):
+        """ Can be overridden by sub-classes. """
+        log.error("get method not implemented in %s" % str(self.__class__))
+        return self.responseError(405)
+
+    def post(self):
+        """ Can be overridden by sub-classes. """
+        log.error("post method not implemented in %s" % str(self.__class__))
+        return self.responseError(405)
+
+    def delete(self):
+        """ Can be overridden by sub-classes. """
+        log.error("delete method not implemented in %s" % str(self.__class__))
+        return self.responseError(405)
+    
+    def put(self):
+        """ Can be overridden by sub-classes. """
+        log.error("put method not implemented in %s" % str(self.__class__))
+        return self.responseError(405)
+        
+    def parseGET(self):
+        """ Parse the query string in the url """
+        return self._parse_qs(self.query_string)
+        
+    def parsePOST(self):
+        """
+        Parse the form data posted.
+        Can be overridden by sub-classes.
+        
+        @return: 0 or error code
+        """
+        content_length = self.request_headers["CONTENT_LENGTH"]
+        content_length = int(content_length)
+        content_type = self.request_headers["CONTENT_TYPE"]
+        log.debug("POST: %s, Content-Length: %d" % (content_type, content_length))
         try:
-            s, l = response_codes[self.response_code]  # @UnusedVariable
-        except KeyError:
-            s, l = "???", "???"  # @UnusedVariable
-        status = "%s %s" % (str(self.response_code), s)
-        
-        if self.response_code == 200 and cookies:
-            for cookie in self._new_cookies:
-                for name in cookie:
-                    self.addHeader("Set-Cookie", cookie[name].OutputString())
+            if content_type.startswith("application/x-www-form-urlencoded"):
+                request_body = self.input.read(content_length)
+                return self._parse_qs(request_body)
                 
-        #self.addHeader("Accept-Ranges", "bytes")
+            elif content_type.startswith("multipart/form-data"):
+                log.debug("Multipart/form-data request")
+                if not content_length:
+                    return 411
+                self.request_data = self._fieldstorage_class(fp=self.input,
+                                                  environ=self._environ,
+                                                  keep_blank_values=True,
+                                                  strict_parsing=False)
+                return 0
+            else:
+                return 415
+        except Exception as err:
+            log.error("Failed to parse the form data: %s" % str(err), exc_info=True)
+            return 500
         
-        self.log_request(self.response_code)
-        
-        self.output = self._start_response(status, self.response_headers)
-        
-        # Send request finished signal
-        middleware_request_finished.send(self.__class__,
-                                         middleware=self)
-        
-    def response_error(self, code, message=None):
+    def responseError(self, code, message=None):
         self.__responseStarted = True
-        log.debug("response_error: %s - %s" % (str(code), str(message)))
+        log.debug("responseError: %s - %s" % (str(code), str(message)))
         try:
             short, l = response_codes[code]
         except KeyError:
@@ -281,7 +291,7 @@ class Middleware(object):
             self._start_response(status, headers)
             return
     
-    def response_redirect(self, url, permanent=False):
+    def redirect(self, url, permanent=False):
         """ Redirect to an url """
         """Sends a redirect to the given (optionally relative) URL."""
         log.debug("redirect to %s" % url)
@@ -292,13 +302,6 @@ class Middleware(object):
         self.addHeader("Location", urljoin(self.path,
                                            url.decode(self._encoding)))
         return
-    
-    def response_file(self, f):
-        """ Send a FILE """
-        if self.filewrapper:
-            return self.filewrapper(f, self.BLOCKSIZE)
-        else:
-            return iter(lambda: f.read(self.BLOCKSIZE), "")
         
     def get_browser_language(self):
         """Determines the user's locale from Accept-Language header.
@@ -479,6 +482,41 @@ class Middleware(object):
         self.request_method = environ["REQUEST_METHOD"].lower()
         self.query_string = environ.get("QUERY_STRING")
         
+    def _startResponse(self, cookies=True):
+        """ Start the response """
+        log.debug("Start response")
+        if self.__responseStarted:
+            log.error("Response already started")
+            return
+        self.__responseStarted = True
+        try:
+            s, l = response_codes[self.response_code]  # @UnusedVariable
+        except KeyError:
+            s, l = "???", "???"  # @UnusedVariable
+        status = "%s %s" % (str(self.response_code), s)
+        
+        if self.response_code == 200 and cookies:
+            for cookie in self._new_cookies:
+                for name in cookie:
+                    self.addHeader("Set-Cookie", cookie[name].OutputString())
+                
+        #self.addHeader("Accept-Ranges", "bytes")
+        
+        self.log_request(self.response_code)
+        
+        self.output = self._start_response(status, self.response_headers)
+        
+        # Send request finished signal
+        middleware_request_finished.send(self.__class__,
+                                         middleware=self)
+    
+    def _responseFile(self, f):
+        """ Send a FILE """
+        if self.filewrapper:
+            return self.filewrapper(f, self.BLOCKSIZE)
+        else:
+            return iter(lambda: f.read(self.BLOCKSIZE), "")
+        
     def _loadCookies(self):
         """ Load the cookies from the response. """
         if "HTTP_COOKIE" in self.request_headers:
@@ -503,46 +541,10 @@ class Middleware(object):
                     if not isinstance(name, STR):
                         name = name.decode(self._encoding)
                     self.request_data[name] = values
-            return True
+            return 0
         except Exception as err:
-            log.error("Failed to parse the form data: %s" % str(err))
-            utils.logTraceback()
-            return False
-        
-    def _parseGET(self):
-        """ Parse the query string in the url """
-        return self._parse_qs(self.query_string)
-        
-    def _parsePOST(self):
-        """ Parse the form data posted """
-        content_length = self.request_headers["CONTENT_LENGTH"]
-        content_length = int(content_length)
-        content_type = self.request_headers["CONTENT_TYPE"]
-        log.debug("POST: %s, Content-Length: %d" % (content_type, content_length))
-        try:
-            if content_type.startswith("text/json") or \
-                content_type.startswith("application/json"):
-                    self.request_data = self.input.read(content_length)
-                    self.request_data = self.request_data.decode(self._encoding)
-                    self.request_data = unquote(self.request_data)
-                
-            elif content_type.startswith("application/x-www-form-urlencoded"):
-                request_body = self.input.read(content_length)
-                return self._parse_qs(request_body)
-                
-            elif content_type.startswith("multipart/form-data"):
-                log.debug("Multipart/form-data request")
-                if not content_length:
-                    return False
-                self.request_data = self._fieldstorage_class(fp=self.input,
-                                                  environ=self._environ,
-                                                  keep_blank_values=True,
-                                                  strict_parsing=False)
-            return True
-        except Exception as err:
-            log.error("Failed to parse the form data: %s" % str(err))
-            utils.logTraceback()
-            return False
+            log.error("Failed to parse the form data: %s" % str(err), exc_info=True)
+            return 500
     
     def __call__(self, environ, start_response):
         self.initEnviron(environ, start_response)
@@ -550,7 +552,7 @@ class Middleware(object):
         
         if self.request_method not in self.SUPPORTED_METHODS:
             log.error("Unknown method %s" % self.request_method)
-            return self.response_error(405, "method %s unsupported"
+            return self.responseError(405, "method %s unsupported"
                                        % self.request_method)
         
         try:
@@ -558,11 +560,13 @@ class Middleware(object):
             # Parse request_data for a GET or POST request
             if self.request_method == "get":
                 if self.query_string:
-                    if not self._parseGET():
-                        return self.response_error(500, "Error parsing query string")
+                    s = self.parseGET()
+                    if s:
+                        return self.responseError(s)
             elif self.request_method == "post":
-                if not self._parsePOST():
-                    return self.response_error(500, "Error parsing post data")
+                s = self.parsePOST()
+                if s:
+                    return self.responseError(s)
                 
             # Send request started signal
             middleware_request_started.send(self.__class__,
@@ -582,14 +586,14 @@ class Middleware(object):
                 result = b""
             elif not hasattr(result, "__iter__") and \
                 not isinstance(result, (STR, bytes, FILE)):
-                return self.response_error(500,
+                return self.responseError(500,
                                            "%s: Method %s returns not iterable object %s"
                                            % (self.__class__.__name__,
                                               self.request_method,
                                               type(result)))
                 
             if not self.__responseStarted:
-                self.start_response()
+                self._startResponse()
                 
             log.debug("Response type: %s" % type(result))
             # Encode unicode(python2.7)/str(python3) type to bytes type
@@ -601,13 +605,13 @@ class Middleware(object):
                 result = [result]
                 
             if isinstance(result, FILE):
-                log.debug("Send FILE")
-                return self.response_file(result)
+                log.debug("Send file")
+                return self._responseFile(result)
             else:
-                log.debug("Send data")
+                log.debug("Send bytes")
                 return result
         
-        except:
-            utils.logTraceback()
-            return self.response_error(500)
+        except Exception as err:
+            log.error(str(err), exc_info=True)
+            return self.responseError(500)
         
