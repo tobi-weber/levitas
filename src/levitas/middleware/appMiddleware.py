@@ -52,6 +52,6 @@ class AppMiddleware(FileMiddleware):
                     break
             else:
                 return self.responseError(404)
-        return self._responseFile()
+        return self.response_file()
     
     

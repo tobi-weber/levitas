@@ -37,22 +37,23 @@ class LoggerMiddleware(Middleware):
         Middleware.__init__(self)
         
         self.loggerName = loggerName
+        
+    def get(self):
+        return self._do_logging(self.request_data)
     
     def post(self):
+        return self._do_logging(self.request_data)
+    
+    def _do_logging(self, data):
         name = self.request_data["name"][0]
         name = self.loggerName + "." + name
         log = logging.getLogger(name)
-        level = self.request_data["levelname"][0]
+        level = self.request_data["levelname"][0].upper()
         level = logging._levelNames[level]
         msg = self.request_data["msg"][0]
-        if "args" in self.request_data:
-            args = self.request_data["args"][0]
-            msg = msg % args
         msg += " - %s - %s" % (self.remote_host, self.request_headers["HTTP_USER_AGENT"])
         log.log(level, msg)
-        result = "logged"
-        self.addHeader("Content-Length", str(len(result)))
-        self.addHeader("Content-type", "text/plain; charset=utf-8")
-        self.start_response()
-        return result
+        
+        return
+        
         

@@ -123,8 +123,8 @@ class FileMiddleware(Middleware):
                 self.size = os.stat(self.fpath)[stat.ST_SIZE]
             else:
                 self.size = 0
-        
-    def get(self):
+                
+    def response_file(self):
         f = self.getFile(self.fpath)
         if f is None:
             return self.responseError(404)
@@ -140,6 +140,9 @@ class FileMiddleware(Middleware):
         self.addHeader("Content-Length", str(self.size))
 
         return f
+        
+    def get(self):
+        return self.response_file()
         
     def head(self):
         return self.get()

@@ -17,7 +17,9 @@ import logging
 
 from tests import (jsonMiddlewareTest,
                    middlewareTest,
-                   fileMiddlewareTest)
+                   fileMiddlewareTest,
+                   loggerMiddlewareTest,
+                   appMiddlewareTest)
 
 SEPERATOR1 = "=" * 70
 SEPERATOR2 = "-" * 70
@@ -52,9 +54,11 @@ def main():
     log.addHandler(handler)
     
     results = {}
-    #results["Middleware"] = middlewareTest.run()
-    #results["JsonMiddleware"] = jsonMiddlewareTest.run()
+    results["Middleware"] = middlewareTest.run()
+    results["JsonMiddleware"] = jsonMiddlewareTest.run()
     results["FileMiddleware"] = fileMiddlewareTest.run()
+    results["LoggerMiddleware"] = loggerMiddlewareTest.run()
+    results["AppMiddleware"] = appMiddlewareTest.run()
     
     for k, v in results.items():
         printResult(k, v)

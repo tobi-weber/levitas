@@ -510,7 +510,7 @@ class Middleware(object):
         middleware_request_finished.send(self.__class__,
                                          middleware=self)
     
-    def _responseFile(self, f):
+    def _getFilewrapper(self, f):
         """ Send a FILE """
         if self.filewrapper:
             return self.filewrapper(f, self.BLOCKSIZE)
@@ -606,7 +606,7 @@ class Middleware(object):
                 
             if isinstance(result, FILE):
                 log.debug("Send file")
-                return self._responseFile(result)
+                return self._getFilewrapper(result)
             else:
                 log.debug("Send bytes")
                 return result
