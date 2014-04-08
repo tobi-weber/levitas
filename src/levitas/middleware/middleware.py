@@ -338,7 +338,7 @@ class Middleware(object):
         for available attributes.
         """
         
-        # Cookie accepts only type str in both Python 2 and 3 
+        # Cookie accepts only type str in both Python 2 and 3
         if sys.version_info[0] == 3:
             if isinstance(name, bytes):
                 name = name.decode(self._encoding)

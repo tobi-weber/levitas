@@ -18,7 +18,6 @@ import os
 import traceback
 import logging
 
-from . import utils
 from .singleton import Singleton
 
 
@@ -64,7 +63,6 @@ class Settings(Singleton):
                 setting_value = getattr(SETTINGS, setting)
                 #log.debug("Set setting %s" % setting)
                 setattr(self, setting, setting_value)
-        
 
     def require(self, name, example=""):
         if not hasattr(self, name):

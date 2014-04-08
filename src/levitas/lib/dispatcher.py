@@ -42,7 +42,7 @@ class Signal(object):
             receiver(sender, *args, **kwargs)
     
     def _lookup_key(self, receiver, sender):
-        return ( id(receiver), id(sender) )
+        return (id(receiver), id(sender))
         
     
 class Receiver(object):
