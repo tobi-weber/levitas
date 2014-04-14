@@ -28,12 +28,14 @@ class BaseTest(unittest.TestCase):
     def setUp(self):
         self.headers = {}
         self.opener = request.build_opener()
-        self.url = "http://localhost:8987/"
+        self.url = "http://localhost:8987"
         
     def _request(self, path, data=None):
         try:
+            if not path.startswith("/"):
+                path = "/%s" % path
             url = self.url + path
-            print("Call url: %s" % url)
+            #print("Call url: %s" % url)
             req = request.Request(url,
                                   data=data,
                                   headers=self.headers)

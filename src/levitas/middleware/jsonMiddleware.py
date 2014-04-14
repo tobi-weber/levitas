@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2010-2013 Tobias Weber <tobi-weber@gmx.de>
+# Copyright (C) 2010-2014 Tobias Weber <tobi-weber@gmx.de>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -55,8 +55,8 @@ class JSONMiddleware(Middleware):
             
     
     Example settings entry:
-    urls = [(^"/myservice", JSONMiddleware, {"service_class": "MyService",
-                                             "service_attributes": {"attr1": VALUE,
+    urls = [(^"/myservice", JSONMiddleware, MyService,
+                                            {"service_attributes": {"attr1": VALUE,
                                                                     "attr2": VAUE}
                                             })]
     """

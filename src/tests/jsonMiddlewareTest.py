@@ -30,7 +30,7 @@ SETTINGS = \
 from levitas.middleware.jsonMiddleware import JSONMiddleware
 from tests.jsonMiddlewareTest import TestService
 urls = [
-(r"^/json/runtest", JSONMiddleware, {"service_class": TestService})
+(r"^/json/runtest", JSONMiddleware, TestService)
 ]
 """
    

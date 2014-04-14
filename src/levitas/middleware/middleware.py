@@ -82,6 +82,9 @@ class Middleware(object):
         self.settings = Settings()
         """ Settings-Object """
         
+        self.re_match = None
+        """ match object for regular expression of the request path """
+        
         self.request_method = None
         """ HTTP-Request method """
         
@@ -174,6 +177,9 @@ class Middleware(object):
     
     def getUserAgent(self):
         return self.user_agent
+    
+    def url_groups(self):
+        return self.re_match.groups()
         
     def initEnviron(self, environ, start_response):
         """ Initialize the wsgi environment """

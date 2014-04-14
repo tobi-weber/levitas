@@ -30,8 +30,8 @@ SETTINGS = \
 from levitas.middleware.fileMiddleware import FileMiddleware
 
 urls = [
-(r"^/(.*)$", FileMiddleware, {"path":
-            "/home/tobi/Workspaces/Public/levitas/src/tests/files"})
+(r"^/(.*)$", FileMiddleware,
+            "/home/tobi/Workspaces/Public/levitas/src/tests/files")
 ]
 """
     

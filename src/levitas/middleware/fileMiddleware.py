@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2010-2013 Tobias Weber <tobi-weber@gmx.de>
+# Copyright (C) 2010-2014 Tobias Weber <tobi-weber@gmx.de>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -113,7 +113,12 @@ class FileMiddleware(Middleware):
     
     def preparePath(self):
         """ set the path in the filesystem """
-        self.fpath = self.translate_path(self.path, self.static_path)
+        groups = self.url_groups()
+        if len(groups) != 1:
+            log.error("There must be only one regex group defined.")
+            raise
+        path = groups[0]
+        self.fpath = self.translate_path(path, self.static_path)
     
     def prepareFile(self):
         """ set the content-type and the file-size """

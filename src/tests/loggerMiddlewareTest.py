@@ -30,7 +30,7 @@ SETTINGS = \
 """
 from levitas.middleware.loggerMiddleware import LoggerMiddleware
 
-urls = [(r"^/logging$", LoggerMiddleware, {"loggerName": "levitas"})]
+urls = [(r"^/logging$", LoggerMiddleware, "levitas")]
 """
     
 

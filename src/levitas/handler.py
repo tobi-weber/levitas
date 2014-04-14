@@ -17,7 +17,6 @@ import os
 import logging
 
 from levitas.lib.settings import Settings
-from levitas.lib import utils
 from .factory import MiddlewareFactory
 from .middleware.middleware import Middleware
 from .signals import (application_instanciated,
@@ -40,7 +39,7 @@ class WSGIHandler(object):
             2. middleware class.
             3. Arguments to instantiate the class.
         
-        Example: 
+        Example:
         urls = [
             # (regular expression of the request path, middleware class,
             (r"^/json", JSONMiddleware, {"service_class": MyService}),
@@ -112,15 +111,21 @@ class WSGIHandler(object):
     
     def createFactory(self, url):
         regex = url[0]
-        handler = url[1]
-        if len(url) == 3:
-            kwargs = url[2]
-        else:
-            kwargs = {}
-        log.debug("MiddlewareFactory: %s, %s, %s" % (regex,
-                                                     handler.__name__,
-                                                     str(kwargs)))
-        factory = MiddlewareFactory(regex, handler, **kwargs)
+        middleware_class = url[1]
+        args = []
+        kwargs = {}
+        for p in url[2:]:
+            if isinstance(p, (list, tuple)):
+                args.extend(p)
+            elif isinstance(p, dict):
+                kwargs.update(p)
+            else:
+                args.append(p)
+        log.debug("MiddlewareFactory: %s, %s, %s, %s" % (regex,
+                                                         middleware_class.__name__,
+                                                         str(args),
+                                                         str(kwargs)))
+        factory = MiddlewareFactory(regex, middleware_class, *args, **kwargs)
         self.factories.append(factory)
         
     def _error(self, environ, _startResponse, code):
@@ -168,17 +173,20 @@ class WSGIHandler(object):
                 return self._error(environ, _startResponse, 404)
             
         # Look up factory for current path and call it.
-        path = environ["PATH_INFO"]
+        path = os.path.normpath(environ["PATH_INFO"])
+        log.debug("Handling path %s" % path)
         for factory in self.factories:
-            if factory.match(path):
+            m = factory.match(path)
+            if m is not None:
                 try:
-                    return factory(environ, _startResponse)
+                    log.debug("Url match pattern: %s" % factory.pattern)
+                    return factory(environ, _startResponse, m)
                 except Exception as err:
                     log.error(str(err), exc_info=True)
                     return self._error(environ, _startResponse, 500)
                 break
         else:
-            log.error("No factory found for %s" % path)
+            log.error("No factory found for %s" % path, exc_info=True)
             return self._error(environ, _startResponse, 404)
 
 

@@ -42,11 +42,10 @@ class MiddlewareFactory(object):
         self.kwargs = kwargs
         
     def match(self, path):
-        if self.regex.match(path):
-            return True
-        else:
-            return False
+        return self.regex.match(path)
         
-    def __call__(self, environ, start_response):
+    def __call__(self, environ, start_response, re_match=None):
         middleware = self.middleware_class(*self.args, **self.kwargs)
+        middleware.re_match = re_match
+        log.debug("Url groups: %s" % str(re_match.groups()))
         return middleware(environ, start_response)

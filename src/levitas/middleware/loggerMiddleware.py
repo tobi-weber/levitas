@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2010-2013 Tobias Weber <tobi-weber@gmx.de>
+# Copyright (C) 2010-2014 Tobias Weber <tobi-weber@gmx.de>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,11 +26,11 @@ class LoggerMiddleware(Middleware):
     Handles logging from python http-logging-handler.
     
     Example settings entry:
-    urls = [(r"^/logging$", LoggerMiddleware, {"loggerName": "myapp"})]
+    urls = [(r"^/logging$", LoggerMiddleware, "myapp")]
     """
     LOG = False
     
-    def __init__(self, loggerName="myapp"):
+    def __init__(self, loggerName=""):
         """
         @param loggerName: Name displayed in log.
         """

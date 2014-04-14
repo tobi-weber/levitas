@@ -19,7 +19,8 @@ from tests import (jsonMiddlewareTest,
                    middlewareTest,
                    fileMiddlewareTest,
                    loggerMiddlewareTest,
-                   appMiddlewareTest)
+                   appMiddlewareTest,
+                   dynSiteMiddlewareTest)
 
 SEPERATOR1 = "=" * 70
 SEPERATOR2 = "-" * 70
@@ -59,6 +60,7 @@ def main():
     results["FileMiddleware"] = fileMiddlewareTest.run()
     results["LoggerMiddleware"] = loggerMiddlewareTest.run()
     results["AppMiddleware"] = appMiddlewareTest.run()
+    results["DynSiteMiddlewareTest"] = dynSiteMiddlewareTest.run()
     
     for k, v in results.items():
         printResult(k, v)
