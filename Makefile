@@ -32,7 +32,8 @@ test:
 	cd src; $(PYTHON) test.py
 	
 doc:
-	cd src; epydoc -v --html --debug --no-sourcecode --graph all --output=../api $(PROJECT)
+	#cd src; epydoc -v --html --debug --no-sourcecode --graph all --output=../api $(PROJECT)
+	cd src; epydoc -v --html --output=../api $(PROJECT)
 	
 clean:
 	cd src; $(PYTHON) setup.py clean

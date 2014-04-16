@@ -23,7 +23,7 @@ except ImportError:
 
 from levitas.lib import utils
 
-from .middleware import Middleware
+from ..middleware import Middleware
 from .service import Service
 
 
@@ -55,7 +55,7 @@ class JSONMiddleware(Middleware):
             
     
     Example settings entry:
-    urls = [(^"/myservice", JSONMiddleware, MyService,
+    urls = [(r"^/myservice$", JSONMiddleware, MyService,
                                             {"service_attributes": {"attr1": VALUE,
                                                                     "attr2": VAUE}
                                             })]

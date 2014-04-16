@@ -24,7 +24,7 @@ log = logging.getLogger("levitas.tests.dynSiteMiddlewareTest")
 
 SETTINGS = \
 """
-from levitas.middleware.dynSiteMiddleware import DynSiteMiddleware
+from levitas.middlewares.dynSiteMiddleware import DynSiteMiddleware
 from tests.dynSiteMiddlewareTest import TestSite
 from tests.dynSiteMiddlewareTest import TestGroups
 

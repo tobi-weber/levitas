@@ -159,24 +159,6 @@ class Middleware(object):
             return self.request_headers[name]
         else:
             return None
-        
-    def getResponseCode(self):
-        return self.response_code
-    
-    def setResponseCode(self, response_code=200):
-        self.response_code = response_code
-        
-    def getArguments(self):
-        return self.request_data
-    
-    def getRemoteHost(self):
-        return self.remote_host
-    
-    def getRemoteAddress(self):
-        return self.remote_address
-    
-    def getUserAgent(self):
-        return self.user_agent
     
     def url_groups(self):
         return self.re_match.groups()

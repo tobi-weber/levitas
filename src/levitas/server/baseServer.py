@@ -32,22 +32,23 @@ class BaseServer(AbstractDaemon):
     backlog = 128
     
     def __init__(self):
-        SETTINGS = Settings()
+        settings = Settings()
         
-        SETTINGS.require("httpserver_address",
-                         'httpserver_address = ("127.0.0.1", 8080)')
-        self.server_address = SETTINGS.httpserver_address
+        if hasattr(settings, "httpserver_address"):
+            self.server_address = settings.httpserver_address
+        else:
+            self.server_address = ("127.0.0.1", 8080)
         
         self.ssl = False
-        if hasattr(SETTINGS, "httpserver_ssl"):
-            self.ssl = SETTINGS.httpserver_ssl
-            if SETTINGS.httpserver_ssl:
-                SETTINGS.require("httpserver_certfile",
+        if hasattr(settings, "httpserver_ssl"):
+            self.ssl = settings.httpserver_ssl
+            if settings.httpserver_ssl:
+                settings.require("httpserver_certfile",
                                  'httpserver_certfile = "/path/to/certfile"')
-                SETTINGS.require("httpserver_keyfile",
+                settings.require("httpserver_keyfile",
                                  'httpserver_keyfile = "/path/to/keyfile"')
-                self.certfile = SETTINGS.httpserver_certfile
-                self.keyfile = SETTINGS.httpserver_keyfile
+                self.certfile = settings.httpserver_certfile
+                self.keyfile = settings.httpserver_keyfile
                 
         self.app = WSGIHandler()
             

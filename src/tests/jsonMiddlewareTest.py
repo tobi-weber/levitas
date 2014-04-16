@@ -16,7 +16,7 @@
 from json import loads
 import logging
     
-from levitas.middleware.service import Service
+from levitas.middlewares.service import Service
 
 from tests import test
 from .test import BaseTest
@@ -27,10 +27,10 @@ log = logging.getLogger("levitas.tests.jsonrpc_test")
 
 SETTINGS = \
 """
-from levitas.middleware.jsonMiddleware import JSONMiddleware
+from levitas.middlewares.jsonMiddleware import JSONMiddleware
 from tests.jsonMiddlewareTest import TestService
 urls = [
-(r"^/json/runtest", JSONMiddleware, TestService)
+(r"^/json/runtest$", JSONMiddleware, TestService)
 ]
 """
    

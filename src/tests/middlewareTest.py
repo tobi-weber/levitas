@@ -39,7 +39,7 @@ if sys.version_info[0] == 3:
 else:
     STR = unicode
     
-from levitas.middleware.middleware import Middleware
+from levitas.middleware import Middleware
 from tests import test
 from .test import BaseTest
 from .utf8_chars import UTF8_CHARS

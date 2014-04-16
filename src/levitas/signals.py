@@ -25,6 +25,18 @@ from levitas.signals import application_instanciated
 @receiver(application_instanciated)
 def myHandler(**kwargs):
     ...
+    
+    
+Signals called by Middleware.
+
+Example:
+from levitas.lib.dispatcher import receiver
+from levitas.middleware,signals import middleware_request_started
+
+@receiver(middleware_request_started)
+def myHandler(**kwargs):
+    ...
+    
 """
 
 
@@ -38,3 +50,19 @@ application_called = Signal()
 Signal sended if the Application called with
 a new request.
 """
+
+middleware_instanciated = Signal()
+"""
+Signal called if a Middleware is instanciated.
+"""
+
+middleware_request_started = Signal()
+"""
+Signal called if a Middleware starts a HTTP Request.
+"""
+
+middleware_request_finished = Signal()
+"""
+Signal called if a Middleware finished a HTTP Request.
+"""
+
