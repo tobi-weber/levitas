@@ -24,7 +24,6 @@ except ImportError:
 from levitas.lib import utils
 
 from ..middleware import Middleware
-from .service import Service
 
 
 log = logging.getLogger("levitas.middleware.jsonMiddleware")
@@ -62,22 +61,19 @@ class JSONMiddleware(Middleware):
     """
     LOG = True
         
-    def __init__(self, service_class, service_attributes={}):
+    def __init__(self, service_class, *service_args, **service_kwargs):
         """
         @param service_class: Class with remote methods.
-        @param service_attributes: a dict with attributes for the service.
         """
         Middleware.__init__(self)
         self.service_class = service_class
-        self.service_attributes = service_attributes
-        if not issubclass(self.service_class, Service):
-            raise ServiceImplementationError("""
-service class %s must be subclass of levitas.middleware.service.Service
-            """ % str(self.service_class))
+        self.service_args = service_args
+        self.service_kwargs = service_kwargs
         
     def post(self):
         try:
-            service = self.service_class(self, **self.service_attributes)
+            service = self.service_class(*self.service_args, **self.service_kwargs)
+            setattr(service, "middleware", self)
             result = ServiceHandler(service).handleData(self.request_data)
             return self.response_result(result)
         except Exception as e:

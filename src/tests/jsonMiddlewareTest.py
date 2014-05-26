@@ -15,8 +15,6 @@
 
 from json import loads
 import logging
-    
-from levitas.middlewares.service import Service
 
 from tests import test
 from .test import BaseTest
@@ -35,7 +33,7 @@ urls = [
 """
    
     
-class TestService(Service):
+class TestService:
     
     def getArg(self):
         return "OK"
