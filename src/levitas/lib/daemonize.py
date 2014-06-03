@@ -20,7 +20,7 @@ import abc
 import logging
 from time import sleep
 from multiprocessing import Process
-from optparse import OptionParser
+from argparse import ArgumentParser
 
 from .settings import SettingMissing
 
@@ -108,7 +108,6 @@ class Daemonizer(Process):
     def do_action(self, action, pidfile):
         if not action in ["start", "stop", "restart", "foreground"]:
             action = "foreground"
-            return
         
         self.pidfile = pidfile
         
@@ -170,11 +169,11 @@ class Daemonizer(Process):
         if self._daemonize:
             self.daemonize()
         try:
-            self.start_daemon()
+            self.start_process()
         except:
             raise
         
-    def start_daemon(self):
+    def start_process(self):
         self.setsignals()
         os.chdir(self.chdir)
         self.daemon_process = self.daemon_class(*self.daemon_args,
@@ -209,84 +208,55 @@ class CLIOptions(object):
     
     def __init__(self, name):
         self.name = name
-        self.actions = ["start", "stop", "restart", "foreground"]
         
-        self.usage = "Usage: %s [OPTION]" % sys.argv[0]
-        for i in range(len(self.actions)):
-            if i == 0:
-                self.usage += " {"
-            else:
-                self.usage += "|"
-                
-            self.usage += self.actions[i]
-            
-            if i == len(self.actions) - 1:
-                self.usage += "}"
-        self.usage += "\n"
+        self.parser = ArgumentParser()
         
-        self.parser = OptionParser(self.usage)
-        
-        self.options = None
         self.pidfile = None
         self.action = None
         
-        self.addOption("-l", "--logfile",
-                       dest="logfile",
-                       help="Path to logfile (optional)")
-        self.addOption("-c", "--logfilecount",
-                       dest="logfilecount",
-                       type="int", default=0,
-                       help="Count of old logfiles to be saved. (default: 0)")
-        self.addOption("-v", "--verbose",
-                       dest="verbose",
-                       action="store_true")
-        self.addOption("-s", "--SETTINGS",
-                       dest="settings_module",
-                       help="SETTINGS module (required)",
-                       metavar="SETTINGS_MODULE")
-        self.addOption("-p", "--pidfile",
-                       dest="pidfile",
-                       default="/var/run/%s.pid" % self.name,
-                       help="pidfile")
-        
-    def addOption(self, short, full, **kwargs):
-        self.parser.add_option(short, full, **kwargs)
+        self.parser.add_argument("action", type=str, nargs='?',
+                                 choices=["start", "stop", "restart", "foreground"])
+        self.parser.add_argument("-l", "--logfile",
+                                 dest="logfile",
+                                 type=str,
+                                 help="Path to logfile (optional)")
+        self.parser.add_argument("-c", "--logfilecount",
+                                 dest="logfilecount",
+                                 type=int, default=0,
+                                 help="Count of old logfiles to be saved. (default: 0)")
+        self.parser.add_argument("-v", "--verbose",
+                                 dest="verbose",
+                                 action="store_true",
+                                 help="vebose output")
+        self.parser.add_argument("-s", "--SETTINGS",
+                                 dest="settings_module",
+                                 type=str,
+                                 help="SETTINGS module (required)",
+                                 metavar="SETTINGS_MODULE")
+        self.parser.add_argument("-p", "--pidfile",
+                                 dest="pidfile",
+                                 type=str,
+                                 default="/var/run/%s.pid" % self.name,
+                                 help="pidfile")
         
     def parse_args(self):
-        options, args = self.parser.parse_args()
+        args = self.parser.parse_args()
         
-        self.options = options
-            
-        if len(args) == 1:
-            if args[0] in self.actions:
-                self.action = args[0]
+        logfile = args.logfile
+        logfilecount = args.logfilecount
+        self.pidfile = args.pidfile
+        self.action = args.action or "foreground"
+        
+        if hasattr(args, "settings_module"):
+            if args.settings_module:
+                os.environ["LEVITAS_SETTINGS"] = args.settings_module
             else:
                 self.parser.print_help()
-                raise CLIOptionError(self.usage)
-        elif len(args) == 0:
-            self.action = "foreground"
-        
-        logfile = None
-        logfilecount = 0
-        
-        if hasattr(options, "logfile"):
-            logfile = options.logfile
+                msg = "option --setting required \n\n"
+                raise CLIOptionError(msg)
             
-        if hasattr(options, "logfilecount"):
-            logfilecount = options.logfilecount
-        
-        if hasattr(options, "pidfile"):
-            self.pidfile = options.pidfile
-        
-        if hasattr(options, "settings_module"):
-            if options.settings_module:
-                os.environ["LEVITAS_SETTINGS"] = options.settings_module
-            else:
-                self.parser.print_help()
-                raise CLIOptionError("option --SETTINGS required")
-        
         if self.action in ["start", "foreground"]:
-            self._initLogging(options.verbose, logfile, logfilecount)
+            self._initLogging(args.verbose, logfile, logfilecount)
             
     def _initLogging(self, verbose=False, logfile=None, logfilecount=0):
         log = logging.getLogger()

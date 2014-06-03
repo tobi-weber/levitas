@@ -4,7 +4,7 @@
 import sys
 import os
 import logging
-from optparse import OptionParser
+from argparse import ArgumentParser
 
 import win32api  # @UnresolvedImport
 import win32serviceutil  # @UnresolvedImport
@@ -212,93 +212,54 @@ class CLIOptions(object):
         self.name = name
         self.displayname = displayname
         self.stay_alive = stay_alive
-            
-        self.actions = ["start", "stop", "remove", "install"]
         
-        self.usage = "Usage: %s [OPTION]" % sys.argv[0]
-        for i in range(len(self.actions)):
-            if i == 0:
-                self.usage += " {"
-            else:
-                self.usage += "|"
-                
-            self.usage += self.actions[i]
-            
-            if i == len(self.actions) - 1:
-                self.usage += "}"
+        self.parser = ArgumentParser()
         
-        self.parser = OptionParser(self.usage)
-        
-        self.options = None
-        self.action = None
-        self.settings_module = None
-        self.logfile = None
-        self.logfilecount = 0
-        self.verbose = False
-        
-        self.addOption("-n", "--name",
+        self.parser.add_argument("action", type=str,
+                                 choices=["start", "stop", "remove", "install"])
+        self.parser.add_argument("-n", "--name",
                        dest="name",
                        help="Servicename (default: %s)" % self.name,
                        default=self.name)
-        self.addOption("-d", "--displayname",
+        self.parser.add_argument("-d", "--displayname",
                        dest="displayname",
                        help="Displayname (default: %s)" % self.displayname,
                        default=self.displayname)
-        self.addOption("-a", "--stayalive",
+        self.parser.add_argument("-a", "--stayalive",
                        dest="stay_alive",
                        help="Service will stop on logout if False (default: %s)"\
                             % str(self.stay_alive),
                        default=self.stay_alive,
                        action="store_true")
-        self.addOption("-l", "--logfile",
+        self.parser.add_argument("-l", "--logfile",
                        dest="logfile",
                        help="Path to logfile (optional)")
-        self.addOption("-c", "--logfilecount",
+        self.parser.add_argument("-c", "--logfilecount",
                        dest="logfilecount",
                        type="int", default=0,
                        help="Count of old logfiles to be saved. (default: 0)")
-        self.addOption("-v", "--verbose",
+        self.parser.add_argument("-v", "--verbose",
                        dest="verbose",
                        action="store_true")
-        self.addOption("-s", "--settings",
+        self.parser.add_argument("-s", "--settings",
                        dest="settings_module",
                        help="settings module (required)",
                        metavar="SETTINGS_MODULE")
         
-    def addOption(self, short, full, **kwargs):
-        self.parser.add_option(short, full, **kwargs)
-        
     def parse_args(self):
-        options, args = self.parser.parse_args()
+        args = self.parser.parse_args()
+            
+        self.action = args.action
+        self.name = args.name
+        self.displayname = args.displayname
+        self.stay_alive = args.stay_alive
+        self.logfile = args.logfile
+        self.logfilecount = args.logfilecount
+        self.verbose = args.verbose
         
-        self.options = options
-            
-        if len(args) == 1:
-            if args[0] in self.actions:
-                self.action = args[0]
-        elif not self.action and len(self.actions) > 0:
-            self.parser.print_help()
-            
-        if hasattr(options, "name"):
-            self.name = options.name
-            
-        if hasattr(options, "displayname"):
-            self.displayname = options.displayname
-            
-        if hasattr(options, "stayalive"):
-            self.stay_alive = options.stay_alive
-        
-        if hasattr(options, "logfile"):
-            self.logfile = options.logfile
-            
-        if hasattr(options, "logfilecount"):
-            self.logfilecount = options.logfilecount
-            
-        self.verbose = options.verbose
-        
-        if hasattr(options, "settings_module"):
-            if options.settings_module:
-                self.settings_module = options.settings_module
+        if hasattr(args, "settings_module"):
+            if args.settings_module:
+                self.settings_module = args.settings_module
             else:
                 if self.action == "install":
                     self.parser.print_help()
