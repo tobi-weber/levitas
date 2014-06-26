@@ -104,8 +104,10 @@ class JSONMiddleware(Middleware):
                 self.request_data = self.input.read(content_length)
                 self.request_data = self.request_data.decode(self._encoding)
                 self.request_data = unquote(self.request_data)
+                log.debug("POST data parsed")
                 return 0
             else:
+                log.error("Wrong content type")
                 return 415
         except Exception as err:
             log.error("Failed to parse the form data: %s" % str(err), exc_info=True)

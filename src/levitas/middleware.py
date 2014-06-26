@@ -416,8 +416,10 @@ class Middleware(object):
         """Returns the given signed cookie if it validates, or None.
         """
         value = self.get_cookie(name)
-        
-        return SecureCookie().decode_value(name, value)
+        if value is not None:
+            return SecureCookie().decode_value(name, value)
+        else:
+            return None
             
     def _readEnviron(self, environ):
                 
