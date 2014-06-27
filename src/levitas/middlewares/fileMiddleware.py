@@ -14,8 +14,6 @@
 # limitations under the License.
 
 import os
-import stat
-import mimetypes
 try:
     from urllib import unquote  # python 2
 except ImportError:
@@ -123,9 +121,10 @@ class FileMiddleware(Middleware):
     def prepareFile(self):
         """ set the content-type and the file-size """
         if self.fpath:
-            self.ctype = self.guess_type(self.fpath)
+            self.ctype = utils.guess_type(self.fpath,
+                                          FileMiddleware.MIMETYPES)
             if os.path.exists(self.fpath):
-                self.size = os.stat(self.fpath)[stat.ST_SIZE]
+                self.size = utils.file_size(self.fpath)
             else:
                 self.size = 0
                 
@@ -250,29 +249,6 @@ class FileMiddleware(Middleware):
             path += '/'
 
         return path
-            
-    def guess_type(self, path):
-        base, ext = posixpath.splitext(path)  # @UnusedVariable
-        if ext in self.extensions_map:
-            return self.extensions_map[ext]
-        ext = ext.lower()
-        if ext in self.extensions_map:
-            return self.extensions_map[ext]
-        else:
-            return self.extensions_map[""]
-
-    if not mimetypes.inited:
-        mimetypes.init()  # try to read system mime.types
-    extensions_map = mimetypes.types_map.copy()  # @UndefinedVariable
-    extensions_map.update({
-        "": "application/octet-stream",  # Default
-        ".py": "text/plain",
-        ".c": "text/plain",
-        ".h": "text/plain",
-        ".appcache": "text/cache-manifest",
-        ".webapp": "application/x-web-app-manifest+json"
-        })
-    extensions_map.update(MIMETYPES)
         
         
         

@@ -13,10 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import stat
 import traceback
 import time
 import datetime
 import email.utils
+import posixpath
+import mimetypes
 
 
 def getTraceback():
@@ -52,4 +56,33 @@ def time2netscape(t=None):
     return "%s, %02d-%s-%04d %02d:%02d:%02d GMT" % (
         DAYS[wday], mday, MONTHS[mon - 1], year, hour, min, sec)
  
+ 
+def file_size(path):
+    return os.stat(path)[stat.ST_SIZE]
     
+ 
+def guess_type(path, custom_mimetypes=None):
+    custom_mimetypes = custom_mimetypes or {}
+    if not mimetypes.inited:
+        mimetypes.init()  # try to read system mime.types
+    extensions_map = mimetypes.types_map.copy()  # @UndefinedVariable
+    extensions_map.update({
+        "": "application/octet-stream",  # Default
+        ".py": "text/plain",
+        ".c": "text/plain",
+        ".h": "text/plain",
+        ".appcache": "text/cache-manifest",
+        ".webapp": "application/x-web-app-manifest+json"
+        })
+    extensions_map.update(custom_mimetypes)
+    base, ext = posixpath.splitext(path)  # @UnusedVariable
+    if ext in extensions_map:
+        return extensions_map[ext]
+    ext = ext.lower()
+    if ext in extensions_map:
+        return extensions_map[ext]
+    else:
+        return extensions_map[""]
+    
+        
+        
