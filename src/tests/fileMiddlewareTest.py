@@ -27,7 +27,7 @@ log = logging.getLogger("levitas.tests.fileMiddlewareTest")
 
 SETTINGS = \
 """
-from levitas.middlewares.fileMiddleware import FileMiddleware
+from levitas.middleware.fileMiddleware import FileMiddleware
 
 urls = [
 (r"^/(.*)$", FileMiddleware,

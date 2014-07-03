@@ -15,7 +15,7 @@
 
 import logging
 
-from ..middleware import Middleware
+from . import Middleware
 
 
 log = logging.getLogger("levitas.middleware.dynSiteMiddleware")

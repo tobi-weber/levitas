@@ -24,7 +24,7 @@ log = logging.getLogger("levitas.tests.loggerMiddlewareTest")
 
 SETTINGS = \
 """
-from levitas.middlewares.appMiddleware import AppMiddleware
+from levitas.middleware.appMiddleware import AppMiddleware
 
 urls = [(r"^/(.*)$", AppMiddleware, {"path":
             "/home/tobi/Workspaces/Public/levitas/src/tests/files"})

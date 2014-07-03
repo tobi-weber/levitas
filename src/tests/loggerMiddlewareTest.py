@@ -28,7 +28,7 @@ log = logging.getLogger("levitas.tests.loggerMiddlewareTest")
 
 SETTINGS = \
 """
-from levitas.middlewares.loggerMiddleware import LoggerMiddleware
+from levitas.middleware.loggerMiddleware import LoggerMiddleware
 
 urls = [(r"^/logging$", LoggerMiddleware, "levitas")]
 """

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2010-2014 Tobias Weber <tobi-weber@gmx.de>
+# Copyright (C) 2010-2013 Tobias Weber <tobi-weber@gmx.de>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this FILE except in compliance with the License.
+# you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
@@ -40,15 +40,15 @@ else:
 from levitas.lib.settings import Settings
 from levitas.lib import utils
 from levitas.lib.secure_cookie import SecureCookie
-from .signals import (middleware_instanciated,
-                     middleware_request_started,
-                     middleware_request_finished)
+from ..signals import (middleware_instanciated,
+                       middleware_request_started,
+                       middleware_request_finished)
 from levitas import (DEFAULT_ERROR_MESSAGE_FORMAT,
                      DEFAULT_ERROR_CONTENT_TYPE,
                      response_codes)
 
 
-log = logging.getLogger("levitas.middleware.middleware")
+log = logging.getLogger("levitas.middleware")
 
 
 class Middleware(object):
