@@ -6,21 +6,22 @@ from distutils.core import setup
 
 
 if platform.system() == "Windows":
-    scripts = ["levitas-httpd-service.py"]
+    scripts = ["levitas-testserver-service.py"]
 else:
-    scripts = ["levitas-httpd"]
+    scripts = ["levitas-testserver"]
     
     
 setup(
-    name = "levitas",
-    version = "0.0.1",
-    description = "A small wsgi framework",
-    author = "Tobias Weber",
-    author_email = "tobi-weber@gmx.de",
-    url = "",
-    packages = ["levitas",
-                "levitas.middleware",
-                "levitas.lib"],
-    scripts = scripts,
-    long_description = """ A small wsgi framework """
+    name="levitas",
+    version="0.0.1",
+    description="A small wsgi framework",
+    author="Tobias Weber",
+    author_email="tobi-weber@gmx.de",
+    url="",
+    packages=["levitas",
+              "levitas.middleware",
+              "levitas.lib",
+              "levitas.server"],
+    scripts=scripts,
+    long_description=""" A small wsgi framework """
 )

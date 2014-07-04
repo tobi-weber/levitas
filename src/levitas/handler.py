@@ -51,6 +51,11 @@ class WSGIHandler(object):
        
        # Custom path to the favicon
        favicon = "/path/to/favicon.ico"
+       
+       # Log to syslog
+       syslog = True
+       syslog_verbose = True
+       sysloghandler_kwargs = {"address": "/dev/log"}
     
     
     WSGI capable webservers
@@ -76,12 +81,14 @@ class WSGIHandler(object):
        application = WSGIHandler()
     """
        
-    def __init__(self, logfile=None, logfilecount=0, verbose=False):
-        if logfile is not None:
-            self._initLogging(logfile, logfilecount, verbose)
+    def __init__(self):
         log.debug("WSGIHandler created %d" % os.getpid())
         
         self.settings = Settings()
+        
+        if hasattr(self.settings, "syslog"):
+            if self.settings.syslog:
+                self._initSyslog()
         
         self.settings.require("urls",
             'urls = [(r"/$", StaticFileHandler, {"path": "/files/path")}), ]')
@@ -133,25 +140,26 @@ class WSGIHandler(object):
         middleware.initEnviron(environ, _startResponse)
         return middleware.responseError(code)
         
-    def _initLogging(self, logfile=None, logfilecount=0, verbose=False):
-        if logfile is None:
-            return
-        
-        from logging.handlers import TimedRotatingFileHandler
+    def _initSyslog(self):
+        from logging.handlers import SysLogHandler
         log = logging.getLogger()
         formatter = logging.Formatter("%(asctime)s - %(name)s "
                                   "- %(levelname)s - %(message)s")
-        h = TimedRotatingFileHandler(logfile, when="midnight",
-                                     backupCount=logfilecount)
-        h.doRollover()
         
-        if verbose:
-            log.setLevel(logging.DEBUG)
+        if hasattr(self.settings, "sysloghandler_kwargs"):
+            kwargs = self.settings.sysloghandler_kwargs
         else:
-            log.setLevel(logging.INFO)
+            kwargs = {"address": "/dev/log"}
+        handler = SysLogHandler(**kwargs)
+        
+        if hasattr(self.settings, "syslog_verbose"):
+            if self.settings.syslog_verbose:
+                log.setLevel(logging.DEBUG)
+            else:
+                log.setLevel(logging.INFO)
             
-        h.setFormatter(formatter)
-        log.addHandler(h)
+        handler.setFormatter(formatter)
+        log.addHandler(handler)
         
     def __call__(self, environ, _startResponse):
         #log.debug("Application call %d" % os.getpid())
