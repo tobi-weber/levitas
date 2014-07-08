@@ -39,6 +39,7 @@ urls = [
 class FileMiddlewareTest(BaseTest):
     
     def test_get_file(self):
+        """Test request binary file"""
         obj = self._request("testfile.png")
         headers = obj.headers
         f = "testfile.png"
@@ -47,35 +48,34 @@ class FileMiddlewareTest(BaseTest):
         self.assertTrue(headers["Content-Length"] == str(s), str(obj))
         
     def test_file_types(self):
+        """Test content types correct"""
         obj = self._request("test.html")
         info = obj.info()
         t = info["Content-type"]
-        print(t)
         self.assertEqual(t, "text/html", "Content type must be text/html")
         obj = self._request("test.js")
         info = obj.info()
         t = info["Content-type"]
-        print(t)
         self.assertEqual(t, "application/javascript",
                          "Content type must be application/javascript")
         obj = self._request("test.css")
         info = obj.info()
         t = info["Content-type"]
-        print(t)
         self.assertEqual(t, "text/css", "Content type must be text/css")
         obj = self._request("test.png")
         info = obj.info()
         t = info["Content-type"]
-        print(t)
         self.assertEqual(t, "image/png", "Content type must be image/png")
         obj = self._request("test.jpg")
         info = obj.info()
         t = info["Content-type"]
-        print(t)
         self.assertEqual(t, "image/jpeg", "Content type must be image/jpeg")
         
     def test_cache_headers(self):
-        f = open("tests/files/cachetest.html", "w")
+        """Test cache headers"""
+        
+        fn = os.path.join(self.cwd, "files/cachetest.html")
+        f = open(fn, "w")
         f.write("<html>TEST</html>")
         f.close()
         
@@ -89,7 +89,7 @@ class FileMiddlewareTest(BaseTest):
                          "Server did not return 304")
         
         time.sleep(1)
-        f = open("cachetest.html", "w")
+        f = open(fn, "w")
         f.write("<html>TEST2</html>")
         f.close()
         self.headers["IF_MODIFIED_SINCE"] = info["Last-Modified"]
@@ -97,7 +97,7 @@ class FileMiddlewareTest(BaseTest):
         self.assertEqual(obj.code, 200,
                          "Revalidate modification time failed. "
                          "Server did not return 200")
-        os.remove("cachetest.html")
+        os.remove(fn)
         
     
 def run():

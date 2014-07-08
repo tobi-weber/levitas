@@ -35,6 +35,7 @@ urls = [(r"^/(.*)$", AppMiddleware, {"path":
 class AppMiddlewareTest(BaseTest):
     
     def test_index_html(self):
+        """Test index.html is returned."""
         obj = self._request("/")
         self.assertEqual(obj.code, 200, "Get index.html failed")
         

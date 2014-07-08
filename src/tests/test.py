@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import unittest
+import os
 import time
 try:
     from urllib import request  # python 3
@@ -29,6 +30,8 @@ class BaseTest(unittest.TestCase):
         self.headers = {}
         self.opener = request.build_opener()
         self.url = "http://localhost:8987"
+        full_path = os.path.realpath(__file__)
+        self.cwd = os.path.dirname(full_path)
         
     def _request(self, path, data=None):
         try:

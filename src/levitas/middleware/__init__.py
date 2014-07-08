@@ -538,7 +538,6 @@ class Middleware(object):
     
     def __call__(self, environ, start_response):
         self.initEnviron(environ, start_response)
-        log.info(self.path)
         
         if self.request_method not in self.SUPPORTED_METHODS:
             log.error("Unknown method %s" % self.request_method)

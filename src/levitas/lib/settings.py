@@ -31,7 +31,7 @@ class SettingMissing(Exception):
 class Settings(Singleton):
     
     def __init__(self):
-        log.info("Settings initialized")
+        log.debug("Settings initialized")
         self.import_module()
                 
     def import_module(self):

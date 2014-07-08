@@ -51,6 +51,7 @@ class TestService:
 class JsonMiddlewareTest(BaseTest):
         
     def _request_json(self, data):
+        """Test json request"""
         self.headers["Content-type"] = "application/json-rpc"
         data = data.encode("utf-8")
         path = "json/runtest"
@@ -61,7 +62,7 @@ class JsonMiddlewareTest(BaseTest):
             raise
         
     def test_missing_params(self):
-        print("")
+        """Test error missining parameters"""
         data = '{"jsonrpc":"2.0","id":"ID01","method":"getArg"}'
         obj = self._request_json(data)
         #print(obj)
@@ -69,7 +70,7 @@ class JsonMiddlewareTest(BaseTest):
         self.assertEqual(obj["result"], "OK")
     
     def test_missing_id(self):
-        print("")
+        """Test no id given error code"""
         data = '{"jsonrpc":"2.0", "method":"get"}'
         obj = self._request_json(data)
         #print(obj)
@@ -77,7 +78,7 @@ class JsonMiddlewareTest(BaseTest):
         self.assertEqual(obj["error"]["code"], -32600)
         
     def test_unknown_method(self):
-        print("")
+        """Test unknown method error code"""
         data = '{"jsonrpc":"2.0","id":"ID01", "method":"get_unknown_method"}'
         obj = self._request_json(data)
         #print(obj)
@@ -85,7 +86,7 @@ class JsonMiddlewareTest(BaseTest):
         self.assertEqual(obj["error"]["code"], -32601)
         
     def test_missing_protocol(self):
-        print("")
+        """Test missing jsonrpc protocol error code"""
         data = '{"id":"ID01", "method":"get"}'
         obj = self._request_json(data)
         #print(obj)
@@ -93,7 +94,7 @@ class JsonMiddlewareTest(BaseTest):
         self.assertEqual(obj["error"]["code"], -32600)
         
     def test_wrong_protocol(self):
-        print("")
+        """Test wrong jsonrpc protocol given error code"""
         data = '{"jsonrpc":"1.0", "id":"ID01", "method":"get"}'
         obj = self._request_json(data)
         #print(obj)
@@ -101,7 +102,7 @@ class JsonMiddlewareTest(BaseTest):
         self.assertEqual(obj["error"]["code"], -32600)
         
     def test_parse_error(self):
-        print("")
+        """Test parse error code"""
         data = '{jsonrpc":"2.0","id":"ID01","method":"get"}'
         obj = self._request_json(data)
         #print(obj)
@@ -109,7 +110,7 @@ class JsonMiddlewareTest(BaseTest):
         self.assertEqual(obj["error"]["code"], -32603)
         
     def test_set_args(self):
-        print("")
+        """Test positional arguments"""
         data = '{"jsonrpc":"2.0","id":"ID01","method":"setArgs","params":["arg1","arg2","arg3"]}' # @IgnorePep8
         obj = self._request_json(data)
         #print(obj)
@@ -117,7 +118,7 @@ class JsonMiddlewareTest(BaseTest):
         self.assertEqual(obj["result"], "Args: arg1, arg2, arg3")
         
     def test_invalid_args(self):
-        print("")
+        """Test invalid positional arguments error code"""
         data = '{"jsonrpc":"2.0","id":"ID01","method":"setArgs","params":["arg1","arg2"]}' # @IgnorePep8
         obj = self._request_json(data)
         #print(obj)
@@ -125,7 +126,7 @@ class JsonMiddlewareTest(BaseTest):
         self.assertEqual(obj["error"]["code"], -32602, str(obj))
         
     def test_set_named_args(self):
-        print("")
+        """Test named arguments"""
         data = '{"jsonrpc":"2.0","id":"ID01","method":"setArgs","params":{"arg1":"1","arg2":"2","arg3":"3"}}' # @IgnorePep8
         obj = self._request_json(data)
         #print(obj)
@@ -133,7 +134,7 @@ class JsonMiddlewareTest(BaseTest):
         self.assertEqual(obj["result"], "Args: 1, 2, 3", str(obj))
         
     def test_invalid_named_args(self):
-        print("")
+        """Test invalid named arguments error code"""
         data = '{"jsonrpc":"2.0","id":"ID01","method":"setArgs","params":{"arg1":"arg1","arg2":"arg2","arg4":"arg3"}}' # @IgnorePep8
         obj = self._request_json(data)
         #print(obj)
@@ -141,7 +142,7 @@ class JsonMiddlewareTest(BaseTest):
         self.assertEqual(obj["error"]["code"], -32602, str(obj))
         
     def test_utf8(self):
-        print("")
+        """Test utf8 handled correct"""
         data = u'{"jsonrpc":"2.0","id":"ID01","method":"utf8","params":["%s"]}' \
                 % UTF8_CHARS.replace('"', '\\"')
         obj = self._request_json(data)

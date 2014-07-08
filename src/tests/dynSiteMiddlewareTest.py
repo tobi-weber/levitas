@@ -56,30 +56,35 @@ class TestGroups(object):
 class DynSiteMiddlewareTest(BaseTest):
     
     def test_root(self):
+        """Test index method is called, if path / is requested."""
         obj = self._request("/")
         self.assertEqual(obj.code, 200, "Test root failed: %s" % str(obj))
         data = obj.read()
         self.assertEqual(data, b"Test", "Test root failed: %s" % data)
         
     def test_index(self):
+        """Test index method is called, if path /index is requested. """
         obj = self._request("/index")
         self.assertEqual(obj.code, 200, "Test index failed: %s" % str(obj))
         data = obj.read()
         self.assertEqual(data, b"Test", "Test index failed: %s" % data)
         
     def test_positional_arg(self):
+        """Test positional argument."""
         obj = self._request("/test/arg/testarg")
         self.assertEqual(obj.code, 200, "Test positional arg failed: %s" % str(obj))
         data = obj.read()
         self.assertEqual(data, b"testarg", "Test positional arg failed: %s" % data)
         
     def test_positional_args(self):
+        """Test positional arguments."""
         obj = self._request("/testargs/arg1/arg2")
         self.assertEqual(obj.code, 200, "Test positional args failed: %s" % str(obj))
         data = obj.read()
         self.assertEqual(data, b"arg1, arg2", "Test positional args failed: %s" % data)
         
     def test_groups(self):
+        """Test url pattern XXXX/XX/XX."""
         obj = self._request("/testgroups/2014/04/13")
         self.assertEqual(obj.code, 200, "Test groups failed: %s" % str(obj))
         data = obj.read()

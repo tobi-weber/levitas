@@ -37,6 +37,7 @@ urls = [(r"^/logging$", LoggerMiddleware, "levitas")]
 class LoggerMiddlewareTest(BaseTest):
     
     def test_get_logger(self):
+        """Test logging get request"""
         params = {"name": "test",
                   "levelname": "info",
                   "msg": "loggerMiddleware get test"}
@@ -45,6 +46,7 @@ class LoggerMiddlewareTest(BaseTest):
         self.assertEqual(obj.code, 200, "Remote logging get failed")
     
     def test_post_logger(self):
+        """Test logging post request"""
         params = {"name": "test",
                   "levelname": "info",
                   "msg": "loggerMiddleware post test"}

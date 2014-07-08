@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import logging
+from argparse import ArgumentParser
 
 from tests import (jsonMiddlewareTest,
                    middlewareTest,
@@ -47,20 +48,79 @@ def printResult(name, res):
     
     
 def main():
-    log = logging.getLogger()
-    log.setLevel(logging.DEBUG)
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
-    handler.setFormatter(formatter)
-    log.addHandler(handler)
+    parser = ArgumentParser()
+    parser.add_argument("-v", "--verbose",
+                        dest="verbose",
+                        action="store_true",
+                        help="vebose log output")
+    
+    # Tests
+    parser.add_argument("-m", "--middlewareTest",
+                        dest="middlewareTest",
+                        action="store_true",
+                        help="Middleware-Test")
+    parser.add_argument("-j", "--jsonMiddlewareTest",
+                        dest="jsonMiddlewareTest",
+                        action="store_true",
+                        help="JsonMiddleware-Test")
+    parser.add_argument("-f", "--fileMiddlewareTest",
+                        dest="fileMiddlewareTest",
+                        action="store_true",
+                        help="FileMiddleware-Test")
+    parser.add_argument("-a", "--appMiddlewareTest",
+                        dest="appMiddlewareTest",
+                        action="store_true",
+                        help="AppMiddleware-Test")
+    parser.add_argument("-l", "--loggerMiddlewareTest",
+                        dest="loggerMiddlewareTest",
+                        action="store_true",
+                        help="LoggerMiddleware-Test")
+    parser.add_argument("-d", "--dynSiteMiddlewareTest",
+                        dest="dynSiteMiddlewareTest",
+                        action="store_true",
+                        help="DynSiteMiddleware-Test")
+    
+    args = parser.parse_args()
+    
+    tests = {}
+    
+    if args.middlewareTest:
+        tests["Middleware-Test"] = middlewareTest
+    
+    if args.jsonMiddlewareTest:
+        tests["JsonMiddleware-Test"] = jsonMiddlewareTest
+    
+    if args.fileMiddlewareTest:
+        tests["FileMiddleware-Test"] = fileMiddlewareTest
+    
+    if args.appMiddlewareTest:
+        tests["AppMiddleware-Test"] = appMiddlewareTest
+    
+    if args.loggerMiddlewareTest:
+        tests["LoggerMiddleware-Test"] = loggerMiddlewareTest
+    
+    if args.dynSiteMiddlewareTest:
+        tests["DynSiteMiddleware-Test"] = dynSiteMiddlewareTest
+        
+    if not tests:
+        tests["Middleware-Test"] = middlewareTest
+        tests["JsonMiddleware-Test"] = jsonMiddlewareTest
+        tests["FileMiddleware-Test"] = fileMiddlewareTest
+        tests["AppMiddleware-Test"] = appMiddlewareTest
+        tests["LoggerMiddleware-Test"] = loggerMiddlewareTest
+        tests["DynSiteMiddleware-Test"] = dynSiteMiddlewareTest
+        
+    if args.verbose:
+        log = logging.getLogger()
+        log.setLevel(logging.DEBUG)
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
+        handler.setFormatter(formatter)
+        log.addHandler(handler)
     
     results = {}
-    results["Middleware"] = middlewareTest.run()
-    results["JsonMiddleware"] = jsonMiddlewareTest.run()
-    results["FileMiddleware"] = fileMiddlewareTest.run()
-    results["LoggerMiddleware"] = loggerMiddlewareTest.run()
-    results["AppMiddleware"] = appMiddlewareTest.run()
-    results["DynSiteMiddlewareTest"] = dynSiteMiddlewareTest.run()
+    for name, test in tests.items():
+        results[name] = test.run()
     
     for k, v in results.items():
         printResult(k, v)

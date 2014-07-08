@@ -298,13 +298,13 @@ class Test_post_fileupload(Middleware):
 class MiddlewareTest(BaseTest):
     
     def test_handler_404(self):
-        print("")
+        """Test resource not found - code 404"""
         obj = self._request("some_path")
         self.assertTrue(isinstance(obj, HTTPError) and \
                         obj.code == 404, type(obj))
     
     def test_none_result(self):
-        print("")
+        """Test None is returned"""
         obj = self._request("none_result")
         #info = obj.info()
         #code = obj.code
@@ -312,58 +312,58 @@ class MiddlewareTest(BaseTest):
         self.assertTrue(data == b"", data)
     
     def test_empty_result(self):
-        print("")
+        """Test empty string is returned"""
         obj = self._request("empty_result")
         data = obj.read()
         self.assertTrue(data == b"", data)
     
     def test_empty_result_list(self):
-        print("")
+        """Test empty list is returned"""
         obj = self._request("empty_result_list")
         data = obj.read()
         self.assertTrue(data == b"", data)
         
     def test_response_string_py2(self):
-        print("")
+        """Test python 2 str type is returned"""
         obj = self._request("response_string_py2")
         self.assertTrue(obj.code == 200, type(obj))
         
     def test_response_string_py3(self):
-        print("")
+        """Test python 3 str is returned"""
         obj = self._request("response_string_py3")
         self.assertTrue(obj.code == 200, type(obj))
         
     def test_response_bytes(self):
-        print("")
+        """Test bytes type is returned"""
         obj = self._request("response_bytes")
         self.assertTrue(obj.code == 200, type(obj))
     
     def test_charset(self):
-        print("")
+        """Test utf8 charset"""
         obj = self._request("charset")
         data = obj.read()
         s = data.decode("utf-8")
         self.assertTrue(s == UTF8_CHARS, s)
     
     def test_invalid_result(self):
-        print("")
+        """Test internal server error is catched"""
         obj = self._request("invalid_result")
         self.assertTrue(isinstance(obj, HTTPError) and \
                         obj.code == 500, type(obj))
     
     def test_addHeader(self):
-        print("")
+        """Test headers are responsed"""
         obj = self._request("addHeader")
         headers = obj.headers
         self.assertTrue(headers["Test-Header"] == "Test-Value", str(obj))
         
     def test_response_error(self):
-        print("")
+        """Test response error"""
         obj = self._request("responseError")
         self.assertTrue(obj.code == 600, str(obj))
     
     def test_response_file(self):
-        print("")
+        """Test response binary file"""
         obj = self._request("response_file")
         headers = obj.headers
         f = "tests/files/testfile.png"
@@ -372,26 +372,26 @@ class MiddlewareTest(BaseTest):
         self.assertTrue(headers["Content-Length"] == str(s), str(obj))
         
     def test_response_redirect(self):
-        print("")
+        """Test redirect"""
         obj = self._request("redirect")
         self.assertTrue(obj.read() == b"redirected", str(obj))
     
     def test_get_browser_language(self):
-        print("")
+        """Test browser language is available"""
         lang_header = "de-de,de;q=0.8,en-us;q=0.5,en;q=0.3"
         self.headers["ACCEPT_LANGUAGE"] = lang_header
         obj = self._request("get_browser_language")
         self.assertTrue(obj.read() == b"de-de,de,en-us,en", str(obj))
         
     def test_get_cookie(self):
-        print("")
+        """Test get a cookie"""
         self.headers["Cookie"] = "testcookie=testvalue"
         obj = self._request("get_cookie")
         data = obj.read()
         self.assertTrue(data == b"testvalue", data)
     
     def test_set_cookie(self):
-        print("")
+        """Test set a cookie"""
         obj = self._request("set_cookie")
         info = obj.info()
         cookies = Cookie.BaseCookie()
@@ -407,7 +407,7 @@ class MiddlewareTest(BaseTest):
                         "'httponly' in cookie")
         
     def test_clear_cookie(self):
-        print("")
+        """Test delete a cookie"""
         self.headers["Cookie"] = "testcookie=testvalue"
         obj = self._request("clear_cookie")
         info = obj.info()
@@ -421,7 +421,7 @@ class MiddlewareTest(BaseTest):
                         "expires time must be smaller then current time")
     
     def test_signed_cookie(self):
-        print("")
+        """Test secure cookie"""
         obj = self._request("set_signed_cookie")
         info = obj.info()
         cookies = Cookie.BaseCookie()
@@ -435,7 +435,7 @@ class MiddlewareTest(BaseTest):
         self.assertEqual(v, b"testvalue", "get signed cookie must return 'testvalue'")
         
     def test_get_args(self):
-        print("")
+        """Test get request arguments"""
         params = {"arg1": "test1", "arg2": "test2"}
         params = urlencode(params, doseq=True)
         path = "get_args?%s" % params
@@ -447,7 +447,7 @@ class MiddlewareTest(BaseTest):
         self.assertEqual(params, urlencode(data, doseq=True))
     
     def test_post_args(self):
-        print("")
+        """Test post request arguments"""
         params = {"arg1": "test1", "arg2": "test2"}
         params = urlencode(params, doseq=True)
         obj = self._request("post_args", data=params.encode("utf-8"))
@@ -458,7 +458,7 @@ class MiddlewareTest(BaseTest):
         self.assertEqual(params, urlencode(data, doseq=True))
     
     def test_post_fileupload(self):
-        print("")
+        """Test file upload"""
         
         def escape_quote(s):
             return s.replace('"', '\\"')

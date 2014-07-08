@@ -97,7 +97,7 @@ class DynSiteMiddleware(Middleware):
                 m = "index"
                 args = comps
             if hasattr(site, m):
-                log.info("Call '%s' method '%s' with args '%s'"
+                log.debug("Call '%s' method '%s' with args '%s'"
                           % (self._dynsite_class.__name__,
                              m,
                              str(args)))
