@@ -19,7 +19,6 @@ from wsgiref.simple_server import (make_server,
                                    WSGIRequestHandler)
     
 from .baseServer import BaseServer
-from levitas.lib import utils
 
 
 log = logging.getLogger("levitas.server.testServer")

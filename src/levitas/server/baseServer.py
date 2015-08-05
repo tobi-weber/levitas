@@ -14,10 +14,14 @@
 # limitations under the License.
 
 import os
+import logging
     
 from levitas.lib.settings import Settings
 from levitas.lib.daemonize import AbstractDaemon
 from levitas.handler import WSGIHandler
+
+
+log = logging.getLogger("levitas.server.baseServer")
 
 
 class BaseServer(AbstractDaemon):
@@ -39,6 +43,7 @@ class BaseServer(AbstractDaemon):
         else:
             self.server_address = ("127.0.0.1", 8080)
         
+        log.info("Start server %s:%d" % self.server_address)
         self.ssl = False
         if hasattr(settings, "httpserver_ssl"):
             self.ssl = settings.httpserver_ssl

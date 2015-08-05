@@ -50,11 +50,12 @@ class LoggerMiddleware(Middleware):
         log = logging.getLogger(name)
         level = self.request_data["levelname"][0].upper()
         try:
-            level = logging._levelNames[level] # python 2
+            level = logging._levelNames[level]  # python 2
         except:
-            level = logging._nameToLevel[level] # python 3 @UndefinedVariable
+            level = logging._nameToLevel[level]  # python 3 @UndefinedVariable
         msg = self.request_data["msg"][0]
-        msg += " - %s - %s" % (self.remote_host, self.request_headers["HTTP_USER_AGENT"])
+        msg += " - %s - %s" % (self.remote_address,
+                               self.request_headers["HTTP_USER_AGENT"])
         log.log(level, msg)
         
         return
