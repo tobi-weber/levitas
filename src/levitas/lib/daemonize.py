@@ -22,6 +22,7 @@ from time import sleep
 from multiprocessing import Process
 from argparse import ArgumentParser
 
+from levitas.lib.modificationmonitor import ModificationMonitor
 from .settings import SettingMissing
 
 
@@ -49,6 +50,12 @@ def cli(daemon_class, daemon_args=[], daemon_kwargs={},
         sys.exit(1)
     
     sys.stdout.write("%s %s: " % (options.action or "start", name))
+    
+    if options.reloader and not "MODIFICATIONMONITOR_STARTED" in os.environ:
+        sys.stdout.write("Start ModificationMonitor\n")
+        ModificationMonitor()
+        sys.exit(0)
+    
     try:
         dz = Daemonizer(daemon_class,
                         chdir=chdir,
@@ -161,6 +168,7 @@ class Daemonizer(Process):
         signal.signal(signal.SIGQUIT, self.sigexit)
         
     def sigexit(self, sig, frame):
+        log.debug("Stop process")
         self.daemon_process.stop()
         sys.exit(0)
 
@@ -233,6 +241,10 @@ class CLIOptions(object):
                                  type=str,
                                  help="SETTINGS module (required)",
                                  metavar="SETTINGS_MODULE")
+        self.parser.add_argument("-r", "--RELOADER",
+                                 dest="reloader",
+                                 action="store_true",
+                                 help="Start with autoreloader")
         self.parser.add_argument("-p", "--pidfile",
                                  dest="pidfile",
                                  type=str,
@@ -246,6 +258,7 @@ class CLIOptions(object):
         logfilecount = args.logfilecount
         self.pidfile = args.pidfile
         self.action = args.action or "foreground"
+        self.reloader = args.reloader
         
         if hasattr(args, "settings_module"):
             if args.settings_module:
