@@ -43,7 +43,9 @@ class BaseServer(AbstractDaemon):
         else:
             self.server_address = ("127.0.0.1", 8080)
         
-        log.info("Start server %s:%d" % self.server_address)
+        log.info("Start server %s:%d [%d]" % (self.server_address[0],
+                                              self.server_address[1],
+                                              os.getpid()))
         self.ssl = False
         if hasattr(settings, "httpserver_ssl"):
             self.ssl = settings.httpserver_ssl
