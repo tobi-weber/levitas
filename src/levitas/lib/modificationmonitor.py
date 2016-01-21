@@ -85,7 +85,9 @@ class ModificationMonitor:
         
     def sigexit(self, sig, frame):
         log.debug("Stop ModificationMonitor process")
-        os.killpg(self._process.pid, signal.SIGTERM)
+        #os.killpg(self._process.pid, signal.SIGTERM)
+        os.killpg(self._process.pid, signal.SIGINT)
+        #os.killpg(self._process.pid, signal.SIGKILL)
         self._process.wait()
         sys.exit(0)
 
