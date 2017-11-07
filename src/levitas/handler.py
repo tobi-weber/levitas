@@ -20,7 +20,7 @@ from levitas.lib.settings import Settings
 from .factory import MiddlewareFactory
 from .middleware import Middleware
 from .signals import (application_instanciated,
-                     application_called)
+                      application_called)
 
 
 log = logging.getLogger("levitas.handler")

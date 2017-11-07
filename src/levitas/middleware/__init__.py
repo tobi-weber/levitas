@@ -37,6 +37,7 @@ if sys.version_info[0] == 3:
 else:
     STR = unicode
     FILE = file
+    
 from levitas.lib.settings import Settings
 from levitas.lib import utils
 from levitas.lib.secure_cookie import SecureCookie
@@ -173,7 +174,7 @@ class Middleware(object):
     def log_request(self, code="-", size="-"):
         if self.LOG:
             self.log_message(logging.INFO, '"%s %s" %s %s',
-                              self.request_method, self.path, str(code), str(size))
+                             self.request_method, self.path, str(code), str(size))
 
     def log_error(self, f, *args):
         self.log_message(logging.ERROR, f, *args)
@@ -239,9 +240,9 @@ class Middleware(object):
                 if not content_length:
                     return 411
                 self.request_data = self._fieldstorage_class(fp=self.input,
-                                                  environ=self._environ,
-                                                  keep_blank_values=True,
-                                                  strict_parsing=False)
+                                                             environ=self._environ,
+                                                             keep_blank_values=True,
+                                                             strict_parsing=False)
                 return 0
             else:
                 return 415
@@ -262,7 +263,7 @@ class Middleware(object):
         log.error("code %d, message: %s", code, message)
         content = (Middleware.ERROR_MESSAGE_FORMAT %
                    {"code": code,
-                    "message": quote(message),
+                    "message": message,
                     "explain": explain})
         f = BytesIO()
         f.write(content.encode(self._encoding))
@@ -373,7 +374,7 @@ class Middleware(object):
 
     def clear_cookie(self, name, path="/", domain=None):
         """Deletes the cookie with the given name."""
-        #expires = datetime.datetime.utcnow() - datetime.timedelta(days=365)
+        # expires = datetime.datetime.utcnow() - datetime.timedelta(days=365)
         if name in self.cookies:
             t = time.time() - (365 * 24 * 60 * 60)
             expires = utils.time2netscape(t)
@@ -388,12 +389,12 @@ class Middleware(object):
             self.clear_cookie(name)
 
     def set_signed_cookie(self, name, value,
-                   domain=None, path="/", httponly=False,
-                   expires=None,
-                   expires_days=None,
-                   expires_hours=None,
-                   expires_minutes=None,
-                   **kwargs):
+                          domain=None, path="/", httponly=False,
+                          expires=None,
+                          expires_days=None,
+                          expires_hours=None,
+                          expires_minutes=None,
+                          **kwargs):
         """Signs and timestamps a cookie so it cannot be forged.
 
         You must specify the "cookie_secret" setting in your settings FILE
@@ -420,12 +421,15 @@ class Middleware(object):
             return SecureCookie().decode_value(name, value)
         else:
             return None
+        
+    def set_content_type(self, content_type="text/html"):
+        self.addHeader("Content-Type", content_type)
             
     def _readEnviron(self, environ):
                 
         for k, v in environ.items():
             if "HTTP_" in k or \
-                "CONTENT_" in k:
+               "CONTENT_" in k:
                 self.request_headers[k] = v
         
         self.path = environ["PATH_INFO"]
@@ -462,7 +466,7 @@ class Middleware(object):
             self.remote_address = ""
             
         if self.remote_host == "localhost" \
-            and "::" in self.remote_address:
+           and "::" in self.remote_address:
             self.remote_address = "127.0.0.1"
         
         if "HTTP_USER_AGENT" in environ:
@@ -490,7 +494,7 @@ class Middleware(object):
                 for name in cookie:
                     self.addHeader("Set-Cookie", cookie[name].OutputString())
                 
-        #self.addHeader("Accept-Ranges", "bytes")
+        # self.addHeader("Accept-Ranges", "bytes")
         
         self.log_request(self.response_code)
         
@@ -542,7 +546,7 @@ class Middleware(object):
         if self.request_method not in self.SUPPORTED_METHODS:
             log.error("Unknown method %s" % self.request_method)
             return self.responseError(405, "method %s unsupported"
-                                       % self.request_method)
+                                      % self.request_method)
         
         try:
             
@@ -573,13 +577,19 @@ class Middleware(object):
                     result = b""
             elif result is None:
                 result = b""
-            elif not hasattr(result, "__iter__") and \
-                not isinstance(result, (STR, bytes, FILE)):
+            elif not hasattr(result, "__iter__") and not isinstance(result,
+                                                                    (STR, bytes, FILE)):
                 return self.responseError(500,
-                                           "%s: Method %s returns not iterable object %s"
-                                           % (self.__class__.__name__,
-                                              self.request_method,
-                                              type(result)))
+                                          "%s: Method %s returns not iterable object %s"
+                                          % (self.__class__.__name__,
+                                             self.request_method,
+                                             type(result)))
+                
+            if "Content-Length" not in self.response_headers and \
+               self.request_method != "head" and \
+               self.response_code >= 200 and \
+               self.response_code not in (204, 304):
+                self.addHeader("Content-Length", str(len(result)))
                 
             if not self.__responseStarted:
                 self._startResponse()

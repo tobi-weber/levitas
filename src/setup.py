@@ -8,7 +8,9 @@ from distutils.core import setup
 if platform.system() == "Windows":
     scripts = ["levitas-testserver-service.py"]
 else:
-    scripts = ["levitas-testserver"]
+    scripts = ["levitas-testserver",
+               "levitas-cherrypy-server",
+               "levitas-eventlet-server"]
     
     
 setup(
