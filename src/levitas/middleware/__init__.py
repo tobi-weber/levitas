@@ -584,8 +584,9 @@ class Middleware(object):
                                           % (self.__class__.__name__,
                                              self.request_method,
                                              type(result)))
-                
-            if "Content-Length" not in self.response_headers and \
+            
+            print(self.response_headers)
+            if "Content-Length" not in str(self.response_headers) and \
                self.request_method != "head" and \
                self.response_code >= 200 and \
                self.response_code not in (204, 304):
