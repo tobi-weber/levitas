@@ -24,7 +24,6 @@ class Singleton(object):
         
     def __new__(cls, *dt, **mp):
         if not hasattr(cls, "_inst"):
-            #log.debug("Create Singleton %s" % str(cls))
             cls._inst = super(Singleton, cls).__new__(cls)
         else:
             def init_pass(self, *dt, **mp):
@@ -45,7 +44,7 @@ class ProcessBork(object):
         pid = os.getpid()
         if not hasattr(cls, "_instances"):
             setattr(cls, "_instances", dict())
-        if not pid in cls._instances:
+        if pid not in cls._instances:
             cls._instances[pid] = cls(*dt, **mp)
         else:
             pass

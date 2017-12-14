@@ -29,15 +29,13 @@ from .settings import SettingMissing
 log = logging.getLogger("levitas.lib.daemonize")
 
 
-def cli(daemon_class, daemon_args=[], daemon_kwargs={},
-               chdir="/", umask=0):
+def cli(daemon_class, daemon_args=[], daemon_kwargs={}, umask=0):
     """
     Command-line interface to control a daemon.
     
     @param daemon_class: Subclass of L{AbstractDaemon}.
     @param daemon_args: Arguments to instantiate the daemon.
     @param daemon_kwargs: Named arguments to instantiate the daemon.
-    @param chdir: Working directory of the daemon.
     @param umask: file mode creation mask.
     """
     name = os.path.basename(sys.argv[0])
@@ -51,14 +49,14 @@ def cli(daemon_class, daemon_args=[], daemon_kwargs={},
     
     sys.stdout.write("%s %s: " % (options.action or "start", name))
     
-    if options.reloader and not "MODIFICATIONMONITOR_STARTED" in os.environ:
+    if options.reloader and "MODIFICATIONMONITOR_STARTED" not in os.environ:
         sys.stdout.write("Start ModificationMonitor\n")
         ModificationMonitor()
         sys.exit(0)
     
     try:
         dz = Daemonizer(daemon_class,
-                        chdir=chdir,
+                        chdir=os.getcwd(),
                         umask=umask,
                         daemon_args=daemon_args,
                         daemon_kwargs=daemon_kwargs)
@@ -113,7 +111,7 @@ class Daemonizer(Process):
         return pid
             
     def do_action(self, action, pidfile):
-        if not action in ["start", "stop", "restart", "foreground"]:
+        if action not in ["start", "stop", "restart", "foreground"]:
             action = "foreground"
         
         self.pidfile = pidfile
@@ -185,7 +183,7 @@ class Daemonizer(Process):
         self.setsignals()
         os.chdir(self.chdir)
         self.daemon_process = self.daemon_class(*self.daemon_args,
-                                   **self.daemon_kwargs)
+                                                **self.daemon_kwargs)
         self.daemon_process.start()
         
     def daemonize(self):
