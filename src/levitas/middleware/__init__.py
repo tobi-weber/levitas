@@ -585,7 +585,6 @@ class Middleware(object):
                                              self.request_method,
                                              type(result)))
             
-            print(self.response_headers)
             if "Content-Length" not in str(self.response_headers) and \
                self.request_method != "head" and \
                self.response_code >= 200 and \
