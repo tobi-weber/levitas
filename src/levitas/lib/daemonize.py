@@ -266,27 +266,33 @@ class CLIOptions(object):
                 msg = "option --setting required \n\n"
                 raise CLIOptionError(msg)
             
-        if self.action in ["start", "foreground"]:
+        if self.action == "start":
+            self._initLogging(args.verbose, logfile, logfilecount)
+        elif self.action == "foreground":
+            if logfile is None:
+                logfile = "console"
             self._initLogging(args.verbose, logfile, logfilecount)
             
     def _initLogging(self, verbose=False, logfile=None, logfilecount=0):
         log = logging.getLogger()
-        formatter = logging.Formatter("%(asctime)s - %(name)s "
-                                      "- %(levelname)s - %(message)s")
-        
-        if logfile is None:
+        if logfile == "console":
             h = logging.StreamHandler()
+        elif logfile is not None:
+            from logging.handlers import RotatingFileHandler
+            doRotation = True if os.path.exists(logfile) else False
+            h = RotatingFileHandler(logfile, backupCount=logfilecount)
+            if doRotation:
+                h.doRollover()
         else:
-            from logging.handlers import TimedRotatingFileHandler
-            h = TimedRotatingFileHandler(logfile, when="midnight",
-                                         backupCount=logfilecount)
-            h.doRollover()
+            return
             
         if verbose:
             log.setLevel(logging.DEBUG)
         else:
             log.setLevel(logging.INFO)
             
+        formatter = logging.Formatter("%(asctime)s - %(name)s "
+                                      "- %(levelname)s - %(message)s")
         h.setFormatter(formatter)
         log.addHandler(h)
             
